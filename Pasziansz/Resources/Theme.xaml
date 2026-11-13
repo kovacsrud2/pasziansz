@@ -1,0 +1,80 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        ZÖLD TÉMA
+        ========
+        A játék minden színe itt van definiálva. A paletta a kártyahátlap
+        fenyőzöldjére épül: mély erdei zöld asztal, smaragd kiemelések,
+        arany/elefántcsont betűk.
+    -->
+
+    <!-- ==================== Színek ==================== -->
+    <Color x:Key="Color.FeltDeep">#FF06281B</Color>
+    <Color x:Key="Color.Felt">#FF0D3A28</Color>
+    <Color x:Key="Color.FeltLight">#FF125037</Color>
+    <Color x:Key="Color.Emerald">#FF1C7A50</Color>
+    <Color x:Key="Color.EmeraldBright">#FF2FAE72</Color>
+    <Color x:Key="Color.Mint">#FFA8E0BE</Color>
+    <Color x:Key="Color.Gold">#FFD8BC78</Color>
+    <Color x:Key="Color.Cream">#FFF3EEDC</Color>
+    <Color x:Key="Color.Ink">#FF0A1F16</Color>
+    <Color x:Key="Color.Danger">#FFD98A6A</Color>
+
+    <!-- ==================== Ecsetek ==================== -->
+    <SolidColorBrush x:Key="Brush.FeltDeep" Color="{StaticResource Color.FeltDeep}" />
+    <SolidColorBrush x:Key="Brush.Felt" Color="{StaticResource Color.Felt}" />
+    <SolidColorBrush x:Key="Brush.Emerald" Color="{StaticResource Color.Emerald}" />
+    <SolidColorBrush x:Key="Brush.EmeraldBright" Color="{StaticResource Color.EmeraldBright}" />
+    <SolidColorBrush x:Key="Brush.Mint" Color="{StaticResource Color.Mint}" />
+    <SolidColorBrush x:Key="Brush.Gold" Color="{StaticResource Color.Gold}" />
+    <SolidColorBrush x:Key="Brush.Cream" Color="{StaticResource Color.Cream}" />
+    <SolidColorBrush x:Key="Brush.Ink" Color="{StaticResource Color.Ink}" />
+    <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" />
+
+    <LinearGradientBrush x:Key="Brush.WindowBackground" StartPoint="0,0" EndPoint="0.85,1">
+        <GradientStop Color="#FF072017" Offset="0" />
+        <GradientStop Color="#FF0B3022" Offset="0.45" />
+        <GradientStop Color="#FF0E3D2A" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.TitleBar" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF0A2A1D" Offset="0" />
+        <GradientStop Color="#FF07211A" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.Felt" StartPoint="0,0" EndPoint="0.3,1">
+        <GradientStop Color="#FF0F4430" Offset="0" />
+        <GradientStop Color="#FF0A2E20" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.Button" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF17624A" Offset="0" />
+        <GradientStop Color="#FF0F4634" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.ButtonHover" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FF23885F" Offset="0" />
+        <GradientStop Color="#FF15624A" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.GoldButton" StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#FFEBD79C" Offset="0" />
+        <GradientStop Color="#FFC9A961" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.EmptySlot" StartPoint="0,0" EndPoint="0.4,1">
+        <GradientStop Color="#3A6FBF95" Offset="0" />
+        <GradientStop Color="#1A0A2E20" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="Brush.CardShadow" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#66000000" Offset="0" />
+        <GradientStop Color="#33000000" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Kártyahátlap ecset – a ThemeManager cseréli futásidőben -->
+    <ImageBrush x:Key="CardBackImage" Stretch="UniformToFill"
+                ImageSource="pack://application:,,,/Assets/Backs/back_green.png" />
+
+</ResourceDictionary>

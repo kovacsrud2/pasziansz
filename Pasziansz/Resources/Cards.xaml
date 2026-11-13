@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Kártya-erőforrás szótár.
+
+    A 52 lapos pakli képei az /Assets/Cards mappából, a három kártyahátlap
+    az /Assets/Backs mappából töltődik be. A kulcsok formátuma:
+        Card.<szín>.<érték>      pl. Card.spades.ace, Card.hearts.10
+        CardBack.<stílus>        pl. CardBack.green
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============ Kártyahátlapok ============ -->
+    <BitmapImage x:Key="CardBack.green" UriSource="pack://application:,,,/Assets/Backs/back_green.png" />
+    <BitmapImage x:Key="CardBack.blue" UriSource="pack://application:,,,/Assets/Backs/back_blue.png" />
+    <BitmapImage x:Key="CardBack.red" UriSource="pack://application:,,,/Assets/Backs/back_red.png" />
+
+    <!-- ============ Kártyalapok (52) ============ -->
+    <BitmapImage x:Key="Card.clubs.ace" UriSource="pack://application:,,,/Assets/Cards/ace_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.2" UriSource="pack://application:,,,/Assets/Cards/2_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.3" UriSource="pack://application:,,,/Assets/Cards/3_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.4" UriSource="pack://application:,,,/Assets/Cards/4_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.5" UriSource="pack://application:,,,/Assets/Cards/5_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.6" UriSource="pack://application:,,,/Assets/Cards/6_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.7" UriSource="pack://application:,,,/Assets/Cards/7_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.8" UriSource="pack://application:,,,/Assets/Cards/8_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.9" UriSource="pack://application:,,,/Assets/Cards/9_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.10" UriSource="pack://application:,,,/Assets/Cards/10_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.jack" UriSource="pack://application:,,,/Assets/Cards/jack_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.queen" UriSource="pack://application:,,,/Assets/Cards/queen_of_clubs.png" />
+    <BitmapImage x:Key="Card.clubs.king" UriSource="pack://application:,,,/Assets/Cards/king_of_clubs.png" />
+    <BitmapImage x:Key="Card.diamonds.ace" UriSource="pack://application:,,,/Assets/Cards/ace_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.2" UriSource="pack://application:,,,/Assets/Cards/2_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.3" UriSource="pack://application:,,,/Assets/Cards/3_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.4" UriSource="pack://application:,,,/Assets/Cards/4_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.5" UriSource="pack://application:,,,/Assets/Cards/5_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.6" UriSource="pack://application:,,,/Assets/Cards/6_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.7" UriSource="pack://application:,,,/Assets/Cards/7_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.8" UriSource="pack://application:,,,/Assets/Cards/8_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.9" UriSource="pack://application:,,,/Assets/Cards/9_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.10" UriSource="pack://application:,,,/Assets/Cards/10_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.jack" UriSource="pack://application:,,,/Assets/Cards/jack_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.queen" UriSource="pack://application:,,,/Assets/Cards/queen_of_diamonds.png" />
+    <BitmapImage x:Key="Card.diamonds.king" UriSource="pack://application:,,,/Assets/Cards/king_of_diamonds.png" />
+    <BitmapImage x:Key="Card.hearts.ace" UriSource="pack://application:,,,/Assets/Cards/ace_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.2" UriSource="pack://application:,,,/Assets/Cards/2_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.3" UriSource="pack://application:,,,/Assets/Cards/3_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.4" UriSource="pack://application:,,,/Assets/Cards/4_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.5" UriSource="pack://application:,,,/Assets/Cards/5_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.6" UriSource="pack://application:,,,/Assets/Cards/6_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.7" UriSource="pack://application:,,,/Assets/Cards/7_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.8" UriSource="pack://application:,,,/Assets/Cards/8_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.9" UriSource="pack://application:,,,/Assets/Cards/9_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.10" UriSource="pack://application:,,,/Assets/Cards/10_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.jack" UriSource="pack://application:,,,/Assets/Cards/jack_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.queen" UriSource="pack://application:,,,/Assets/Cards/queen_of_hearts.png" />
+    <BitmapImage x:Key="Card.hearts.king" UriSource="pack://application:,,,/Assets/Cards/king_of_hearts.png" />
+    <BitmapImage x:Key="Card.spades.ace" UriSource="pack://application:,,,/Assets/Cards/ace_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.2" UriSource="pack://application:,,,/Assets/Cards/2_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.3" UriSource="pack://application:,,,/Assets/Cards/3_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.4" UriSource="pack://application:,,,/Assets/Cards/4_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.5" UriSource="pack://application:,,,/Assets/Cards/5_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.6" UriSource="pack://application:,,,/Assets/Cards/6_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.7" UriSource="pack://application:,,,/Assets/Cards/7_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.8" UriSource="pack://application:,,,/Assets/Cards/8_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.9" UriSource="pack://application:,,,/Assets/Cards/9_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.10" UriSource="pack://application:,,,/Assets/Cards/10_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.jack" UriSource="pack://application:,,,/Assets/Cards/jack_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.queen" UriSource="pack://application:,,,/Assets/Cards/queen_of_spades.png" />
+    <BitmapImage x:Key="Card.spades.king" UriSource="pack://application:,,,/Assets/Cards/king_of_spades.png" />
+
+</ResourceDictionary>
