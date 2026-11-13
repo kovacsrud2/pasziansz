@@ -43,7 +43,9 @@
         <GradientStop Color="#FF07211A" Offset="1" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="Brush.Felt" StartPoint="0,0" EndPoint="0.3,1">
+    <!-- Sötét asztal-gradiens. FIGYELEM: a "Brush.Felt" kulcs már a világos
+         zöld SolidColorBrush-é, ezért ez más nevet kap. -->
+    <LinearGradientBrush x:Key="Brush.FeltGradient" StartPoint="0,0" EndPoint="0.3,1">
         <GradientStop Color="#FF0F4430" Offset="0" />
         <GradientStop Color="#FF0A2E20" Offset="1" />
     </LinearGradientBrush>
@@ -73,8 +75,17 @@
         <GradientStop Color="#33000000" Offset="1" />
     </LinearGradientBrush>
 
-    <!-- Kártyahátlap ecset – a ThemeManager cseréli futásidőben -->
-    <ImageBrush x:Key="CardBackImage" Stretch="UniformToFill"
-                ImageSource="pack://application:,,,/Assets/Backs/back_green.png" />
+    <!--
+        Kártyahátlap ecset.
+
+        FONTOS: itt szándékosan NINCS beégetett kép-URI. A pack://application:,,,/...
+        hivatkozásokat a XAML-fordító BAML-lé alakítja, és ha a hivatkozott erőforrás
+        nincs a fordítás pillanatában a megfelelő helyen (pl. eltérő AssemblyName,
+        hiányzó Resource elem vagy designer-nézet), a szótár betöltése
+        XamlParseExceptiont dob. A tényleges hátlapot ezért a ThemeManager állítja be
+        futásidőben (a Resources/Cards.xaml CardBack.* BitmapImage kulcsai alapján),
+        ez a semleges ecset csak tartalék arra az esetre, ha az még nem történt meg.
+    -->
+    <SolidColorBrush x:Key="CardBackImage" Color="#FF0B3A28" />
 
 </ResourceDictionary>

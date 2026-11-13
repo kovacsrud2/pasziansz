@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -32,8 +33,15 @@ namespace Pasziansz.Services
         public static void ApplyCardBack(CardBackStyle style)
         {
             CurrentCardBack = style;
-            var key = KeyFor(style);
-            ImageSource image = TryFindImage(key) ?? TryFindImage("CardBack.green") ?? CreateFallbackImage();
+
+            // 1) a szótárból (Resources/Cards.xaml CardBack.* kulcsai)
+            // 2) ha az nem elérhető, közvetlenül az assembly erőforrásából
+            // 3) ha az sem, egy rajzolt tartalék hátlap
+            ImageSource image = TryFindImage(KeyFor(style))
+                                ?? TryFindImage("CardBack.green")
+                                ?? TryLoadFromAssembly("Assets/Backs/back_" + StyleFileName(style) + ".png")
+                                ?? CreateFallbackImage();
+
             CardBackImage = image;
 
             var brush = new ImageBrush(image)
@@ -55,6 +63,75 @@ namespace Pasziansz.Services
             }
 
             CardBackChanged?.Invoke(null, EventArgs.Empty);
+        }
+
+        /// <summary>A stílushoz tartozó fájlnév (green/blue/red).</summary>
+        private static string StyleFileName(CardBackStyle style) => style switch
+        {
+            CardBackStyle.Blue => "blue",
+            CardBackStyle.Red => "red",
+            _ => "green"
+        };
+
+        /// <summary>
+        /// A kártyahátlap betöltése közvetlenül a beágyazott erőforrásból.
+        /// Így akkor is van hátlap, ha a ResourceDictionary valamiért nem érhető el
+        /// (pl. designer-nézet vagy eltérő erőforrás-útvonal).
+        /// </summary>
+        private static ImageSource? TryLoadFromAssembly(string relativePath)
+        {
+            try
+            {
+                var assembly = typeof(ThemeManager).Assembly;
+                string resourceName = assembly.GetName().Name + ".g.resources";
+
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream == null)
+                {
+                    return null;
+                }
+
+                using var reader = new System.Resources.ResourceReader(stream);
+                string key = relativePath.ToLowerInvariant().Replace('/', '.');
+
+                foreach (System.Collections.DictionaryEntry entry in reader)
+                {
+                    if (entry.Key is not string name || !name.EndsWith(".png", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (!name.Replace('/', '.').EndsWith(key, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    if (entry.Value is not Stream raw)
+                    {
+                        continue;
+                    }
+
+                    // A streamet memóriába olvassuk, hogy a BitmapImage már a
+                    // bezárás után is használható legyen.
+                    using var buffer = new MemoryStream();
+                    raw.CopyTo(buffer);
+                    buffer.Position = 0;
+
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.StreamSource = buffer;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+                    return bitmap;
+                }
+            }
+            catch
+            {
+                // ha a beágyazott erőforrás sem olvasható, a tartalék hátlap következik
+            }
+
+            return null;
         }
 
         private static ImageSource? TryFindImage(string key)

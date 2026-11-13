@@ -34,8 +34,22 @@ namespace Pasziansz.Controls
         private const double BoardMargin = 18;
         private const double WasteFanBase = 26;
 
-        private readonly Canvas _cardCanvas = new() { ClipToBounds = false };
-        private readonly Canvas _hintCanvas = new() { ClipToBounds = false, IsHitTestVisible = false };
+        // A kártyavászonnak ÁTLÁTSZÓ (de nem null) háttere kell: a WPF csak akkor
+        // találja el a vezérlőt az egérrel, ha a pont alatt van található vizuális elem.
+        // A kártyák maguk IsHitTestVisible=false értékkel jönnek létre (a találatot
+        // saját magunk számoljuk), így e nélkül semmilyen egéresemény nem érkezne meg.
+        private readonly Canvas _cardCanvas = new()
+        {
+            ClipToBounds = false,
+            Background = Brushes.Transparent
+        };
+
+        private readonly Canvas _hintCanvas = new()
+        {
+            ClipToBounds = false,
+            IsHitTestVisible = false,
+            Background = Brushes.Transparent
+        };
         private readonly Dictionary<(PileKind Kind, int Index), PileVisual> _piles = new();
         private readonly Dictionary<Card, CardView> _views = new();
         private readonly Dictionary<Card, Point> _positions = new();
@@ -69,8 +83,19 @@ namespace Pasziansz.Controls
             Focusable = true;
             SnapsToDevicePixels = true;
 
+
             AddVisualChild(_cardCanvas);
             AddVisualChild(_hintCanvas);
+        }
+
+        /// <summary>
+        /// Átlátszó találati réteg: enélkül a FrameworkElement nem található el az
+        /// egérrel (a kártyák IsHitTestVisible=false, a vásznak pedig üresek lennének).
+        /// </summary>
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            base.OnRender(drawingContext);
+            drawingContext.DrawRectangle(Brushes.Transparent, null, new Rect(RenderSize));
         }
 
         protected override int VisualChildrenCount => 2;
@@ -777,7 +802,21 @@ namespace Pasziansz.Controls
 
             if (!IsMouseCaptured || _selectedPile == null || e.LeftButton != MouseButtonState.Pressed)
             {
+                // Csak a kurzor visszajelzése: kártya fölött kéz, egyébként nyíl.
+                if (!IsMouseCaptured && _game != null)
+                {
+                    Cursor = TryHit(e.GetPosition(this), out _, out _, out _)
+                        ? Cursors.Hand
+                        : Cursors.Arrow;
+                }
+
                 return;
+            }
+
+            // Húzás közben mindig a "mozgatás" kurzor látszódjon.
+            if (Cursor != Cursors.SizeAll)
+            {
+                Cursor = Cursors.SizeAll;
             }
 
             var current = e.GetPosition(this);
