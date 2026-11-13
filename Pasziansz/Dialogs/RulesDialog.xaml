@@ -1,0 +1,77 @@
+<Window x:Class="Pasziansz.RulesDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Játékszabály"
+        Width="560" Height="640"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        ResizeMode="NoResize" FontFamily="Segoe UI Variable Text, Segoe UI">
+    <Grid Margin="16">
+        <Border CornerRadius="18" Background="{StaticResource Brush.WindowBackground}"
+                BorderBrush="#803FAE7C" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="28" ShadowDepth="8" Direction="270"
+                                  Color="Black" Opacity="0.6" />
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Background="{StaticResource Brush.TitleBar}" CornerRadius="18,18,0,0"
+                        BorderBrush="#26A8E0BE" BorderThickness="0,0,0,1" Padding="20,14">
+                    <TextBlock Text="JÁTÉKSZABÁLY" Style="{StaticResource Text.Title}" FontSize="14" />
+                </Border>
+
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                              Style="{StaticResource ScrollViewer.Green}" Padding="20,16,12,8">
+                    <StackPanel>
+                        <TextBlock Text="Cél" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
+                                   Text="A négy gyűjtőhelyre (balról jobb: ♣ ♦ ♥ ♠) kell felpakolnod mind az 52 lapot, színenként ásztól királyig növekvő sorrendben." />
+
+                        <TextBlock Text="Az oszlopok" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
+                                   Text="Az oszlopokra csak váltakozó színnel és eggyel kisebb értékkel kerülhet lap (pl. piros 8-ra fekete 7). Üres oszlopra csak király tehető. A lefordított lapok alól fokozatosan szabadulnak fel a lapok." />
+
+                        <TextBlock Text="Húzás" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
+                                   Text="A húzópakliból a beállított mód szerint egyszerre 1 vagy 3 lap kerül a talonra. Ha a pakli elfogy, a talon lapjai visszakeverednek a pakliba. A talonból csak a legfelső lap használható." />
+
+                        <TextBlock Text="Mozgatás" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
+                                   Text="Kattints a lapra (vagy a mozgatni kívánt lapra és az alatta lévőkre), majd kattints a célrakásra. Egérrel is áthúzhatod a lapokat. Dupla kattintással a lap a gyűjtőhelyére kerül. Az 1–7 billentyűkkel a kiválasztott lapot a megfelelő oszlopra teheted." />
+
+                        <TextBlock Text="Pontozás" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
+                                   Text="+10 pont a gyűjtőhelyre tett lapért" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
+                                   Text="+5 pont a talonból az oszlopra tett lapért" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
+                                   Text="+15 pont az oszlop alján lévő lap felfordításáért" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
+                                   Text="−15 pont a gyűjtőhelyről visszavett lapért" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
+                                   Text="−20 pont a talon újrakeveréséért" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
+                                   Text="−100 pont, ha a talonból vett lapot visszateszed a pakliba" />
+
+                        <TextBlock Text="Billentyűk" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="Szóköz – húzás, illetve a kiválasztott lap felpakolása" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="1–7 – a kiválasztott lap áthelyezése az adott oszlopra" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="H – tipp kérése" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="A – automatikus felpakolás a gyűjtőhelyekre" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="Ctrl+Z – az utolsó lépés visszavonása" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="F2 – új osztás, F5 – ugyanennek az osztásnak az újrajátszása" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Button Grid.Row="2" Style="{StaticResource Button.Primary}" Content="Rendben"
+                        HorizontalAlignment="Center" Margin="0,6,0,18" Padding="30,9"
+                        Click="Close_Click" IsDefault="True" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

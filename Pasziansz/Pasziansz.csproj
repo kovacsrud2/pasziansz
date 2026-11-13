@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Pasziansz</AssemblyName>
+    <RootNamespace>Pasziansz</RootNamespace>
+    <ApplicationIcon>Assets\App.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <Product>Zöld Pasziánsz</Product>
+    <AssemblyTitle>Zöld Pasziánsz</AssemblyTitle>
+    <Description>Klondike pasziánsz játék WPF-ben, zöld témával.</Description>
+    <Company>Pasziansz</Company>
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <NeutralLanguage>hu-HU</NeutralLanguage>
+    <SatelliteResourceLanguages>hu;en</SatelliteResourceLanguages>
+
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- A kártyák, hátlapok és textúrák beépített WPF erőforrásként (pack://) kerülnek a binárisba. -->
+  <ItemGroup>
+    <Resource Include="Assets\Cards\*.png" />
+    <Resource Include="Assets\Backs\*.png" />
+    <Resource Include="Assets\Textures\*.png" />
+    <Resource Include="Assets\App.ico" />
+    <None Remove="Assets\**" />
+  </ItemGroup>
+
+</Project>
