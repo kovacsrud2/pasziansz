@@ -90,6 +90,12 @@ namespace Pasziansz.Game
         /// <summary>Az utolsó osztás lapjai (a húzópakli aljától a tetejéig), az újraosztáshoz.</summary>
         public bool CanRestart => _lastDeal is { Count: var count } && count == Deck.FullDeckSize;
 
+        /// <summary>
+        /// Az aktuális osztás lapjai a kiosztás sorrendjében (az újraosztáshoz).
+        /// Mentéskor ezt is tárolni kell, mert a játék közben a lapok már máshol vannak.
+        /// </summary>
+        public IReadOnlyList<Card>? Deal => _lastDeal;
+
         public event EventHandler<MoveRecord>? MovePerformed;
 
         public event EventHandler? GameChanged;
@@ -158,7 +164,8 @@ namespace Pasziansz.Game
             IReadOnlyList<PileState> tableau,
             IReadOnlyList<PileState> foundation,
             PileState stock,
-            PileState waste)
+            PileState waste,
+            IEnumerable<Card>? deal = null)
         {
             Board.Reset();
             _undoStack.Clear();
@@ -184,13 +191,12 @@ namespace Pasziansz.Game
             wastePile.AddRange(waste.Cards);
             wastePile.FaceDownCount = waste.FaceDownCount;
 
-            // Az újraosztáshoz (F5) ismerni kell az eredeti osztás sorrendjét:
-            // az oszlopok alulról felfelé, majd a húzópakli alulról felfelé.
-            // (Az oszlopok lapjai a mentés idején már nem feltétlenül az eredeti
-            // helyükön vannak, ezért a belőlük képzett sorrend csak közelítés –
-            // így viszont az újraosztás mindig érvényes 52 lapos paklit ad.)
-            var deal = tableau.SelectMany(state => state.Cards).Concat(stock.Cards).ToList();
-            _lastDeal = deal.Count == Deck.FullDeckSize ? deal : null;
+            // Az újraosztáshoz (F5) a mentett osztás sorrendje kell. Ha a mentés nem
+            // tartalmazza (régebbi fájl), az újraosztás nem lesz elérhető.
+            var restoredDeal = deal?.ToList();
+            _lastDeal = restoredDeal is { Count: var count } && count == Deck.FullDeckSize
+                ? restoredDeal
+                : null;
 
             LastAction = "Mentett játék folytatása";
             GameChanged?.Invoke(this, EventArgs.Empty);

@@ -51,6 +51,12 @@ namespace Pasziansz.Game
         /// <summary>A négy gyűjtőhely, a 0. gyűjtőhelytől (♣ ♦ ♥ ♠).</summary>
         public List<SavedPile> Foundation { get; set; } = new();
 
+        /// <summary>
+        /// Az eredeti osztás lapjai kiosztási sorrendben – ebből működik az
+        /// újraosztás (F5) a folytatott partiban is. Régebbi mentésnél üres.
+        /// </summary>
+        public List<string> Deal { get; set; } = new();
+
         /// <summary>A mentett állapot alapján felépített parti a játéknak.</summary>
         public void ApplyTo(KlondikeGame game)
         {
@@ -80,7 +86,27 @@ namespace Pasziansz.Game
                 tableau,
                 foundation,
                 ToPileState(PileRef.Stock(), Stock),
-                ToPileState(PileRef.Waste(), Waste));
+                ToPileState(PileRef.Waste(), Waste),
+                ParseDeal());
+        }
+
+        /// <summary>A mentett osztás lapjai (ha van és érvényes).</summary>
+        private IEnumerable<Card>? ParseDeal()
+        {
+            if (Deal.Count != Deck.FullDeckSize)
+            {
+                return null;
+            }
+
+            try
+            {
+                var cards = ParseCards(Deal).ToList();
+                return cards.Distinct().Count() == Deck.FullDeckSize ? cards : null;
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
         }
 
         private static KlondikeGame.PileState ToPileState(PileRef reference, SavedPile pile) =>
@@ -173,7 +199,8 @@ namespace Pasziansz.Game
                 Tableau = board.Tableau.Select(location => ToSavedPile(location.Pile)).ToList(),
                 Foundation = board.Foundation.Select(location => ToSavedPile(location.Pile)).ToList(),
                 Stock = ToSavedPile(board.Stock.Pile),
-                Waste = ToSavedPile(board.Waste.Pile)
+                Waste = ToSavedPile(board.Waste.Pile),
+                Deal = game.Deal?.Select(SavedGame.FormatCard).ToList() ?? new List<string>()
             };
         }
 

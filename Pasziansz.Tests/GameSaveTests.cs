@@ -194,18 +194,21 @@ public class GameSaveTests
     }
 
     [Fact]
-    public void ApplyTo_RestartDealsTheSameLayout()
+    public void ApplyTo_RestartDealsTheSameLayoutAsTheOriginalDeal()
     {
+        // Az újraosztás az EREDETI osztást adja vissza (nem a félbehagyott állapotot):
+        // ezért a mentésnek az osztás sorrendjét is tárolnia kell.
         var game = PlayedGame(17);
         var saved = GameSaveStore.Capture(game);
+
         var restored = new KlondikeGame(new Random(1));
         saved.ApplyTo(restored);
 
-        // Az újraosztás ugyanazt az osztást adja vissza, mint amilyen a mentett
-        // partiban a lapok eredeti kiosztása volt: a királyok és a lefordított
-        // lapok száma oszloponként újra i.
-        restored.RestartCurrentDeal();
+        Assert.Equal(Deck.FullDeckSize, saved.Deal.Count);
 
+        Assert.True(restored.RestartCurrentDeal().Success);
+
+        // Ilyenkor a klasszikus friss osztás áll elő: i+1 lap, i lefordítva.
         for (int i = 0; i < 7; i++)
         {
             var pile = restored.Board.Tableau[i].Pile;
@@ -216,6 +219,85 @@ public class GameSaveTests
         Assert.Equal(24, restored.Board.Stock.Pile.Count);
         Assert.Empty(restored.Board.Waste.Pile.Cards);
         Assert.Equal(Deck.FullDeckSize, restored.Board.AllCards().Distinct().Count());
+        Assert.Equal(0, restored.Score);
+        Assert.Equal(0, restored.MoveCount);
+    }
+
+    [Fact]
+    public void ApplyTo_RestartGivesTheSameCardsAsTheOriginalDeal()
+    {
+        // A visszaosztott lapok sorrendje pontosan az eredeti osztásé.
+        var game = PlayedGame(31);
+        var originalDeal = game.Deal!.Select(c => SavedGame.FormatCard(c)).ToList();
+
+        var saved = GameSaveStore.Capture(game);
+        var restored = new KlondikeGame(new Random(1));
+        saved.ApplyTo(restored);
+
+        restored.RestartCurrentDeal();
+
+        var afterRestart = restored.Deal!.Select(c => SavedGame.FormatCard(c)).ToList();
+        Assert.Equal(originalDeal, afterRestart);
+    }
+
+    [Fact]
+    public void SaveAndLoad_KeepsTheOriginalDeal()
+    {
+        string path = TempSavePath();
+        try
+        {
+            var game = PlayedGame(35);
+            var originalDeal = game.Deal!.Select(c => SavedGame.FormatCard(c)).ToList();
+            Assert.True(GameSaveStore.Save(game, path));
+
+            var loaded = GameSaveStore.Load(path);
+            Assert.NotNull(loaded);
+            Assert.Equal(originalDeal, loaded!.Deal);
+
+            var restored = new KlondikeGame(new Random(1));
+            loaded.ApplyTo(restored);
+
+            Assert.True(restored.CanRestart);
+            Assert.True(restored.RestartCurrentDeal().Success);
+            Assert.Equal(originalDeal, restored.Deal!.Select(c => SavedGame.FormatCard(c)).ToList());
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Capture_StoresTheDealInDealOrder()
+    {
+        var game = new KlondikeGame(new Random(3));
+        game.NewGame(1);
+
+        var saved = GameSaveStore.Capture(game);
+
+        // Az osztás sorrendje: az oszlopok alulról felfelé, majd a húzópakli alulról felfelé.
+        var expected = game.Board.Tableau.SelectMany(l => l.Pile.Cards)
+            .Concat(game.Board.Stock.Pile.Cards)
+            .Select(SavedGame.FormatCard)
+            .ToList();
+
+        Assert.Equal(Deck.FullDeckSize, saved.Deal.Count);
+        Assert.Equal(expected, saved.Deal);
+    }
+
+    [Fact]
+    public void ApplyTo_WithoutDealInSave_RestartIsNotPossible()
+    {
+        // Régebbi (osztás nélküli) mentés: a parti folytatható, de újraosztani nem lehet.
+        var saved = GameSaveStore.Capture(PlayedGame(33));
+        saved.Deal.Clear();
+
+        var restored = new KlondikeGame(new Random(1));
+        saved.ApplyTo(restored);
+
+        Assert.False(restored.CanRestart);
+        Assert.False(restored.RestartCurrentDeal().Success);
+        Assert.Equal(Deck.FullDeckSize, restored.Board.AllCards().Count);
     }
 
     // ------------------------------------------------------------------
