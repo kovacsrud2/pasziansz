@@ -77,6 +77,16 @@ namespace Pasziansz.Controls
         private bool _dragging;
         private bool _suppressClick;
 
+        /// <summary>
+        /// A húzással épp lerakott lapok és a húzás alatti eltolásuk. A lerakás után
+        /// ebből a képernyő-pozícióból animálunk az új helyre, hogy a kártya ne
+        /// ugorjon vissza a forrásra, majd onnan repüljön át.
+        /// </summary>
+        private Dictionary<Card, Point>? _droppedOffsets;
+
+        /// <summary>A lerakás animációja közben ne induljon újabb eltolás-animáció.</summary>
+        private bool _suppressRelayoutAnimation;
+
         public CardTableView()
         {
             ClipToBounds = true;
@@ -200,6 +210,9 @@ namespace Pasziansz.Controls
             ClearSelection(silent: true);
             ClearHint();
             _dropHighlight.Visibility = Visibility.Collapsed;
+
+            // Húzással történt lerakásnál a lap a húzás alatti helyéről simul át;
+            // egyébként a szokásos animáció fut (pl. kattintással való áthelyezés).
             FullRelayout(animate: true);
         }
 
@@ -331,9 +344,21 @@ namespace Pasziansz.Controls
 
                     Panel.SetZIndex(view, ++z);
 
+                    bool fromDrop = animate && _droppedOffsets != null &&
+                                    _droppedOffsets.TryGetValue(card, out var dropOffset);
+
                     if (animate && view.IsLoaded)
                     {
-                        AnimateTo(view, point.X, point.Y);
+                        if (fromDrop)
+                        {
+                            // A lerakott kártya a húzás alatti képernyő-pozíciójából
+                            // induljon, ne a forrásrakás régi helyéről.
+                            AnimateFromDrop(view, point, _droppedOffsets![card]);
+                        }
+                        else
+                        {
+                            AnimateTo(view, point.X, point.Y);
+                        }
                     }
                     else
                     {
@@ -357,6 +382,9 @@ namespace Pasziansz.Controls
             }
 
             Panel.SetZIndex(_dropHighlight, 5000);
+
+            // A lerakás-eltolások csak az ezt követő elrendezésre érvényesek.
+            _droppedOffsets = null;
         }
 
         private bool IsFaceUp(Pile pile, int index) =>
@@ -471,6 +499,49 @@ namespace Pasziansz.Controls
             }
 
             return panel;
+        }
+
+        /// <summary>
+        /// A húzással lerakott kártya animálása: a húzás alatti (eltolt) helyéről
+        /// csúszik az új helyére. A <paramref name="offset"/> a Canvas-koordinátákban
+        /// mért eltolás, amellyel a kártya a húzás alatt a forrásrakás helyétől
+        /// el volt tolva.
+        /// </summary>
+        private static void AnimateFromDrop(UIElement element, Point target, Point offset)
+        {
+            double startX = target.X + offset.X;
+            double startY = target.Y + offset.Y;
+
+            // A húzás közbeni transzformációt megszüntetjük; a kártyát a valódi
+            // (eltolt) pozíciójára állítjuk, és onnan animálunk.
+            element.RenderTransform = Transform.Identity;
+
+            var duration = TimeSpan.FromMilliseconds(150);
+            var ease = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+
+            var leftAnim = new DoubleAnimation(startX, target.X, duration)
+            {
+                EasingFunction = ease,
+                FillBehavior = FillBehavior.Stop
+            };
+            var topAnim = new DoubleAnimation(startY, target.Y, duration)
+            {
+                EasingFunction = ease,
+                FillBehavior = FillBehavior.Stop
+            };
+
+            leftAnim.Completed += (_, _) =>
+            {
+                element.BeginAnimation(Canvas.LeftProperty, null);
+                element.BeginAnimation(Canvas.TopProperty, null);
+                Canvas.SetLeft(element, target.X);
+                Canvas.SetTop(element, target.Y);
+            };
+
+            Canvas.SetLeft(element, startX);
+            Canvas.SetTop(element, startY);
+            element.BeginAnimation(Canvas.LeftProperty, leftAnim);
+            element.BeginAnimation(Canvas.TopProperty, topAnim);
         }
 
         private static void AnimateTo(UIElement element, double x, double y)
@@ -755,6 +826,7 @@ namespace Pasziansz.Controls
                 ResetDragTransforms();
                 _selectedPile = null;
                 _selectedIndex = -1;
+                FullRelayout(animate: false);
             }
 
             var point = e.GetPosition(this);
@@ -980,7 +1052,9 @@ namespace Pasziansz.Controls
                 }
                 else
                 {
+                    // Nem rakható le: a lap visszakerül a helyére.
                     ResetDragTransforms();
+                    FullRelayout(animate: true);
                 }
 
                 _dragging = false;
@@ -999,6 +1073,11 @@ namespace Pasziansz.Controls
             && pile.FaceDownCount > 0
             && !pile.IsFaceUp(index);
 
+        /// <summary>
+        /// A húzás közbeni vizuális eltolás törlése. Szándékosan NEM rendezzük újra
+        /// a táblát: a hívó (sikeres lerakás vagy visszaállítás) úgyis elrendezést
+        /// indít, és egy azonnali újrarendezés megszakítaná az épp induló animációt.
+        /// </summary>
         private void ResetDragTransforms()
         {
             if (_selectedPile == null || _game == null)
@@ -1014,16 +1093,25 @@ namespace Pasziansz.Controls
                     view.RenderTransform = Transform.Identity;
                 }
             }
-
-            FullRelayout(animate: false);
         }
 
         private void TryMove(PileRef from, int sourceIndex, PileRef to)
         {
+            // Húzással történő lerakásnál a lapok a húzás alatti eltolással vannak
+            // a képernyőn. Ezt átadjuk a lerakás animációjának, hogy a kártya a
+            // jelenlegi helyéről simuljon az új helyére (ne ugorjon vissza).
+            var carryOver = CaptureDragOffsets(from, sourceIndex);
+
             ResetDragTransforms();
+
             var result = _game!.Move(from, sourceIndex, to);
             if (result.Success)
             {
+                if (carryOver is { Count: > 0 })
+                {
+                    _droppedOffsets = carryOver;
+                }
+
                 SoundPlayer.PlayCardPlace();
                 MoveCompleted?.Invoke(this, EventArgs.Empty);
             }
@@ -1038,6 +1126,37 @@ namespace Pasziansz.Controls
                 ClearSelection(silent: false);
                 FullRelayout(animate: false);
             }
+        }
+
+        /// <summary>
+        /// A kiválasztott lapok (és a felettük lévők) húzás alatti eltolásának
+        /// rögzítése a lerakás animációjához.
+        /// </summary>
+        private Dictionary<Card, Point>? CaptureDragOffsets(PileRef from, int sourceIndex)
+        {
+            if (_game == null)
+            {
+                return null;
+            }
+
+            var pile = _game.Board.Get(from).Pile;
+            if (sourceIndex < 0 || sourceIndex >= pile.Count)
+            {
+                return null;
+            }
+
+            var offsets = new Dictionary<Card, Point>();
+            for (int i = sourceIndex; i < pile.Count; i++)
+            {
+                var card = pile.Cards[i];
+                if (_views.TryGetValue(card, out var view) && view.RenderTransform is TranslateTransform offset &&
+                    (Math.Abs(offset.X) > 0.5 || Math.Abs(offset.Y) > 0.5))
+                {
+                    offsets[card] = new Point(offset.X, offset.Y);
+                }
+            }
+
+            return offsets.Count > 0 ? offsets : null;
         }
 
         private void SendToFoundation(PileRef source, int index)
