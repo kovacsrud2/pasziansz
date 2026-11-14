@@ -270,6 +270,13 @@ namespace Pasziansz.Controls
 
         private double WasteFan => WasteFanBase * Scale;
 
+        /// <summary>
+        /// Hány lap látszik a talonon egymás mellett. 3 lapos húzásnál a szabály
+        /// szerint három lap játszható, 1 laposnál csak a legfelső – különben a
+        /// korábban húzott lapok kilógnának, és egyre több lap látszana.
+        /// </summary>
+        private int WasteVisibleCount => _game?.DrawCount == 3 ? 3 : 1;
+
         private double ColumnX(int column) => BoardMargin + column * (_cardW + ColumnGap);
 
         private double RowY(int row) => BoardMargin + row * (_cardH + RowGap);
@@ -363,8 +370,12 @@ namespace Pasziansz.Controls
 
             if (pile.Kind == PileKind.Waste)
             {
+                int visible = WasteVisibleCount;
                 int fromEnd = pile.Count - 1 - index;
-                int slot = Math.Clamp(2 - fromEnd, 0, 2);
+
+                // A látható sávon belül jobbra tolódnak, a régebbi lapok a legfelső alá
+                // kerülnek (1 lapos módban tehát csak egy lap látszik).
+                int slot = Math.Max(0, visible - 1 - fromEnd);
                 x += slot * WasteFan;
             }
             else if (pile.Kind == PileKind.Tableau)
@@ -385,7 +396,9 @@ namespace Pasziansz.Controls
             var pile = location.Pile;
             double x = ColumnX(location.Column);
             double y = RowY(location.Row);
-            double slotWidth = pile.Kind == PileKind.Waste ? _cardW + 2 * WasteFan : _cardW;
+            double slotWidth = pile.Kind == PileKind.Waste
+            ? _cardW + (WasteVisibleCount - 1) * WasteFan
+            : _cardW;
 
             pv.Slot.Width = slotWidth;
             pv.Slot.Height = _cardH;
@@ -535,6 +548,12 @@ namespace Pasziansz.Controls
                 // Csak a lap látható sávjában adunk találatot: a felette fekvő lap
                 // eltakarja az alatta lévő nagy részét, így a kattintás a takaró lapot éri.
                 double visibleHeight = VisibleCardHeight(hitMeta);
+                if (visibleHeight <= 0)
+                {
+                    // Teljesen takart lap (pl. az 1 lapos húzásnál a korábbi lapok).
+                    continue;
+                }
+
                 var rect = new Rect(pair.Value, new Size(_cardW, visibleHeight));
                 if (!rect.Contains(point))
                 {
@@ -571,7 +590,9 @@ namespace Pasziansz.Controls
                     continue;
                 }
 
-                double width = pv.Location.Kind == PileKind.Waste ? _cardW + 2 * WasteFan : _cardW;
+                double width = pv.Location.Kind == PileKind.Waste && pv.Location.Pile.Count == 0
+                    ? _cardW + (WasteVisibleCount - 1) * WasteFan
+                    : _cardW;
                 var rect = new Rect(ColumnX(pv.Location.Column), RowY(pv.Location.Row), width, _cardH);
                 if (rect.Contains(point))
                 {
@@ -610,9 +631,16 @@ namespace Pasziansz.Controls
 
             if (meta.Pile.Kind == PileKind.Waste)
             {
-                // A talonnál a háromlapos rajongás: a jobb szélső (legfelső) lap a teljes.
+                // A talonnál a jobb szélső (legfelső) lap látszik teljesen; a régebbiek
+                // csak annyit, hogy épp kilátszanak a legfelső alól. 1 lapos húzásnál
+                // a korábbi lapok teljesen a legfelső alatt vannak.
                 int fromEnd = pile.Count - 1 - meta.Index;
-                return fromEnd == 0 ? _cardH : Math.Min(_cardH, WasteFan);
+                if (fromEnd == 0)
+                {
+                    return _cardH;
+                }
+
+                return fromEnd < WasteVisibleCount ? Math.Min(_cardH, WasteFan) : 0;
             }
 
             return _cardH;

@@ -127,6 +127,7 @@ namespace Pasziansz
 
             _settings.DrawCount = _game.DrawCount;
             SubtitleText.Text = $"Klondike · {_game.DrawCount} lapos húzás";
+            UpdateDrawModeToggles(_game.DrawCount);
             Table.RefreshFromModel();
             Table.Focus();
             ShowToast(drawCount == 1
@@ -469,6 +470,15 @@ namespace Pasziansz
 
         private void SyncSettingsUi()
         {
+            // A kapcsoló a tényleges játékmódot mutassa (a játék alapértéke 1,
+            // a mentett beállítás viszont 3 lapos húzás is lehet).
+            if (!_game.CanRestart)
+            {
+                // Még nincs osztás (mentett parti betöltése előtt): csak előkészítjük
+                // a módot. Betöltés után a betöltött parti módja az érvényes.
+                _game.NewGame(_settings.DrawCount);
+            }
+
             UpdateDrawModeToggles(_game.DrawCount);
             UpdateBackStyleUi(_settings.CardBackStyle);
             HintStatusText.Text = string.Empty;

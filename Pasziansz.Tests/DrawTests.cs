@@ -190,6 +190,61 @@ public class DrawTests
     }
 
     [Fact]
+    public void OneCardMode_AfterSeveralDraws_OnlyTheTopCardIsPlayable()
+    {
+        // 1 lapos húzásnál a talonon csak a legfelső lap használható, a korábbi
+        // húzott lapok nem – a nézet ezért csak egy lapot mutat.
+        var game = BoardSetup.EmptyGame(drawCount: 1);
+        BoardSetup.SetStock(game, "5H", "4S", "3D", "2C");
+
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.True(game.DrawFromStock().Success);
+        }
+
+        Assert.Equal(3, game.Board.Waste.Pile.Count);
+        Assert.Equal(1, game.DrawCount);
+
+        var waste = game.Board.Waste.Pile;
+        Assert.False(Rules.CanPickUp(waste, 0, out _));
+        Assert.False(Rules.CanPickUp(waste, 1, out _));
+        Assert.True(Rules.CanPickUp(waste, 2, out _));
+    }
+
+    [Fact]
+    public void ThreeCardMode_AfterDraw_AllThreeDrawnCardsArePlayable()
+    {
+        // 3 lapos húzásnál a három legutóbb húzott lap játszható (ezért látszik 3).
+        var game = BoardSetup.EmptyGame(drawCount: 3);
+        BoardSetup.SetStock(game, "5H", "4S", "3D", "2C", "AH");
+
+        Assert.True(game.DrawFromStock().Success);
+        Assert.Equal(3, game.Board.Waste.Pile.Count);
+
+        // A talonból a szabály csak a legfelsőt engedi elvenni; a másik kettő
+        // akkor válik elérhetővé, ha a felette lévőket elmozgatjuk.
+        var waste = game.Board.Waste.Pile;
+        Assert.False(Rules.CanPickUp(waste, 0, out _));
+        Assert.True(Rules.CanPickUp(waste, 2, out _));
+    }
+
+    [Fact]
+    public void DrawCountSwitch_ChangesHowManyCardsAreDrawn()
+    {
+        var game = BoardSetup.EmptyGame(drawCount: 1);
+        BoardSetup.SetStock(game, "5H", "4S", "3D");
+
+        game.DrawFromStock();
+        Assert.Single(game.Board.Waste.Pile.Cards);
+
+        // Új játék 3 lapos módban: hármat húz.
+        game.NewGame(3);
+        Assert.Equal(3, game.DrawCount);
+        game.DrawFromStock();
+        Assert.Equal(3, game.Board.Waste.Pile.Count);
+    }
+
+    [Fact]
     public void FlipTopCard_FaceDownTopCardIsFlipped()
     {
         var game = BoardSetup.EmptyGame();
