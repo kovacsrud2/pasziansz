@@ -78,7 +78,7 @@ namespace Pasziansz
         {
             MessageBox.Show(
                 "Váratlan hiba történt a játék közben:\n\n" + e.Exception.Message,
-                "Zöld Pasziánsz",
+                "Gészi pasziánsz",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
             e.Handled = true;
@@ -99,7 +99,7 @@ namespace Pasziansz
 
                 MessageBox.Show(
                     "Végzetes hiba történt:\n\n" + ex.Message,
-                    "Zöld Pasziánsz",
+                    "Gészi pasziánsz",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }

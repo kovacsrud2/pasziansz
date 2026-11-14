@@ -3,8 +3,8 @@ using System.Windows;
 namespace Pasziansz
 {
     /// <summary>
-    /// A program betöltő képernyője: indításkor rövid ideig az ikonképet mutatja,
-    /// amíg a főablak elkészül. A képet a <c>Assets\Splash\nemeskep_2.jpg</c>
+    /// A program betöltő képernyője: indításkor rövid ideig a kezdőképet mutatja,
+    /// amíg a főablak elkészül. A képet a <c>Assets\Splash\kepernyo_2.png</c>
     /// beépített erőforrás adja.
     /// </summary>
     public partial class SplashWindow : Window
