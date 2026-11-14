@@ -133,6 +133,10 @@ namespace Pasziansz.Controls
                 _game.MovePerformed -= OnMovePerformed;
             }
 
+            // Újracsatolásnál (pl. mentett parti betöltése) a korábbi vizuális elemek
+            // nem maradhatnak a vásznon, különben duplán jelenne meg a tábla.
+            DetachVisuals();
+
             _game = game;
             _game.MovePerformed += OnMovePerformed;
 
@@ -151,6 +155,35 @@ namespace Pasziansz.Controls
 
             RecalculateMetrics();
             FullRelayout(animate: false);
+        }
+
+        /// <summary>A korábbi játékhoz tartozó vizuális elemek eltávolítása.</summary>
+        private void DetachVisuals()
+        {
+            foreach (var pv in _piles.Values)
+            {
+                _cardCanvas.Children.Remove(pv.Slot);
+                _cardCanvas.Children.Remove(pv.Label);
+            }
+
+            _cardCanvas.Children.Remove(_dropHighlight);
+
+            foreach (var view in _views.Values)
+            {
+                _cardCanvas.Children.Remove(view);
+            }
+
+            // A kijelölést még a gyűjtemények ürítése előtt töröljük (a ClearSelection
+            // a nézeteket állítja vissza).
+            ClearSelection(silent: true);
+
+            _piles.Clear();
+            _views.Clear();
+            _positions.Clear();
+            _meta.Clear();
+            _tableauStep.Clear();
+
+            _dropHighlight.Visibility = Visibility.Collapsed;
         }
 
         /// <summary>Téma-váltás: a lefordított lapok hátlapjának cseréje.</summary>

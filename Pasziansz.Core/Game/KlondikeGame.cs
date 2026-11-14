@@ -67,7 +67,8 @@ namespace Pasziansz.Game
 
         public int MoveCount { get; private set; }
 
-        public int RecycleCount { get; private set; }
+        /// <summary>A talon újrakeveréseinek száma (a mentett állapot visszaállításához írható).</summary>
+        public int RecycleCount { get; set; }
 
         /// <summary>A gyűjtőhelyeken lévő lapok száma (0..52).</summary>
         public int CardsOnFoundation => Board.Foundation.Sum(f => f.Pile.Count);
@@ -78,6 +79,7 @@ namespace Pasziansz.Game
 
         public int UndoDepth => _undoStack.Count;
 
+        /// <summary>A parti kezdete (a mentett parti folytatásakor visszaállítjuk).</summary>
         public DateTime GameStartedAt { get; private set; } = DateTime.Now;
 
         public TimeSpan Elapsed => DateTime.Now - GameStartedAt;
@@ -140,6 +142,62 @@ namespace Pasziansz.Game
 
             GameChanged?.Invoke(this, EventArgs.Empty);
         }
+
+        /// <summary>
+        /// A parti állapotának visszaállítása mentett adatokból (játék folytatása).
+        /// A <paramref name="board"/> a hét oszlop, a <paramref name="stock"/> a húzópakli
+        /// és a <paramref name="waste"/> a talon lapjai alulról felfelé, a lefordított
+        /// lapok számával együtt. A tábla teljesen felülíródik, a visszavonás-verem kiürül.
+        /// </summary>
+        public void LoadState(
+            int drawCount,
+            int score,
+            int moveCount,
+            int recycleCount,
+            DateTime gameStartedAt,
+            IReadOnlyList<PileState> tableau,
+            IReadOnlyList<PileState> foundation,
+            PileState stock,
+            PileState waste)
+        {
+            Board.Reset();
+            _undoStack.Clear();
+
+            DrawCount = drawCount == 3 ? 3 : 1;
+            Score = Scoring.Clamp(score);
+            MoveCount = Math.Max(0, moveCount);
+            RecycleCount = Math.Max(0, recycleCount);
+            GameStartedAt = gameStartedAt;
+
+            foreach (var state in tableau.Concat(foundation))
+            {
+                var pile = Board.Get(state.Reference).Pile;
+                pile.AddRange(state.Cards);
+                pile.FaceDownCount = state.FaceDownCount;
+            }
+
+            var stockPile = Board.Stock.Pile;
+            stockPile.AddRange(stock.Cards);
+            stockPile.FaceDownCount = stock.FaceDownCount;
+
+            var wastePile = Board.Waste.Pile;
+            wastePile.AddRange(waste.Cards);
+            wastePile.FaceDownCount = waste.FaceDownCount;
+
+            // Az újraosztáshoz (F5) ismerni kell az eredeti osztás sorrendjét:
+            // az oszlopok alulról felfelé, majd a húzópakli alulról felfelé.
+            // (Az oszlopok lapjai a mentés idején már nem feltétlenül az eredeti
+            // helyükön vannak, ezért a belőlük képzett sorrend csak közelítés –
+            // így viszont az újraosztás mindig érvényes 52 lapos paklit ad.)
+            var deal = tableau.SelectMany(state => state.Cards).Concat(stock.Cards).ToList();
+            _lastDeal = deal.Count == Deck.FullDeckSize ? deal : null;
+
+            LastAction = "Mentett játék folytatása";
+            GameChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Egy rakás tartalma a mentéshez / betöltéshez.</summary>
+        public readonly record struct PileState(PileRef Reference, IReadOnlyList<Card> Cards, int FaceDownCount);
 
         /// <summary>Az utolsó osztás megismétlése ugyanazokkal a lapokkal, tiszta pontszámmal.</summary>
         public MoveResult RestartCurrentDeal()

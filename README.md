@@ -15,7 +15,8 @@ Klasszikus **Klondike pasziánsz** C# / WPF nyelven, teljesen egyedi, zöld tém
 - **Visszavonás** az utolsó 500 lépésre, **tipp**, **automatikus felpakolás**, **újraosztás** ugyanazzal a paklival.
 - **Pontozás** a klasszikus Klondike szabály szerint, valamint statisztika (játszmák, nyerési arány, legjobb idő és pontszám).
 - **Animált lapmozgás**, hangeffektusok (generált, külső fájl nélkül), lebegő hibaüzenetek.
-- **Mentett beállítások** és statisztika: `%APPDATA%\ZoldPasziansz\`.
+- **Játékmentés** – a félbehagyott parti automatikusan mentődik, és indításkor (vagy a **Folytatás** gombbal, `F9`) onnan folytatható, ahol abbamaradt.
+- **Mentett beállítások**, statisztika és parti: `%APPDATA%\ZoldPasziansz\`.
 
 ## Követelmények
 
@@ -51,6 +52,7 @@ dotnet publish Pasziansz/Pasziansz.csproj -c Release -r win-x64 --self-contained
 | Visszavonás | `Ctrl+Z` |
 | Új osztás | `F2` |
 | Ugyanazon osztás újrajátszása | `F5` |
+| Mentett parti folytatása | `F9` |
 | Játékszabály | `F1` |
 | Kilépés | `Alt+F4` vagy a bezárás gomb |
 
@@ -93,6 +95,7 @@ Pasziansz.Core/                       – a szabálymotor, felület nélkül (ne
 │  ├─ Rules.cs                     – a Klondike szabályai
 │  ├─ Scoring.cs                   – pontozás
 │  ├─ Statistics.cs                – statisztika mentése/betöltése
+│  ├─ GameSave.cs                  – a félbehagyott parti mentése/betöltése
 │  └─ PileLocation.cs              – a rakások modellje a nézethez
 └─ Models/                         – Card, Deck, Pile, MoveRecord
 
