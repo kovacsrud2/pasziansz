@@ -199,19 +199,34 @@ public class RulesTests
     [Fact]
     public void CanPickUp_TableauRequiresFaceUpMovableRun()
     {
+        // 7♣ lefordítva, felette a 6♥ 5♠ érvényes sorozat.
         var pile = new Pile(PileKind.Tableau, 0);
         pile.Add(Cards.C("7C"));   // 0 – lefordított
-        pile.Add(Cards.C("6H"));   // 1
-        pile.Add(Cards.C("5S"));   // 2
-        pile.Add(Cards.C("9D"));   // 3 – nem illeszkedik a sorozatba
+        pile.Add(Cards.C("6H"));   // 1 – a sorozat alja
+        pile.Add(Cards.C("5S"));   // 2 – a legfelső lap
         pile.FaceDownCount = 1;
 
-        Assert.False(Rules.CanPickUp(pile, 0, out _)); // lefordított
-        Assert.True(Rules.CanPickUp(pile, 1, out _));  // 6H 5S érvényes sorozat
-        Assert.True(Rules.CanPickUp(pile, 2, out _));
-        Assert.True(Rules.CanPickUp(pile, 3, out _));  // a legfelső lap mindig felvehető
-        Assert.False(Rules.CanPickUp(pile, 4, out _)); // nincs ilyen lap
+        Assert.False(Rules.CanPickUp(pile, 0, out _)); // lefordított lap
+        Assert.True(Rules.CanPickUp(pile, 1, out _));  // 6♥ 5♠ érvényes sorozat
+        Assert.True(Rules.CanPickUp(pile, 2, out _));  // a legfelső lap mindig felvehető
+        Assert.False(Rules.CanPickUp(pile, 3, out _)); // nincs ilyen lap
         Assert.False(Rules.CanPickUp(pile, -1, out _));
+    }
+
+    [Fact]
+    public void CanPickUp_BrokenRunOnlyAllowsTheTopCard()
+    {
+        // A 9♦ nem illeszkedik a 6♥ 5♠ sorozathoz, ezért az alatta lévők nem
+        // vihetők el együtt – csak a legfelső lap.
+        var pile = new Pile(PileKind.Tableau, 0);
+        pile.Add(Cards.C("6H"));   // 0
+        pile.Add(Cards.C("5S"));   // 1
+        pile.Add(Cards.C("9D"));   // 2 – megszakítja a sorozatot
+        pile.FaceDownCount = 0;
+
+        Assert.False(Rules.CanPickUp(pile, 0, out _));
+        Assert.False(Rules.CanPickUp(pile, 1, out _));
+        Assert.True(Rules.CanPickUp(pile, 2, out _));
     }
 
     [Fact]
