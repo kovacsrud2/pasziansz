@@ -5,11 +5,15 @@ Gészi pasziánsz - betöltőképernyő előállítása.
 A kép a játék saját kártyalapjaiból (Assets/Cards/*.png), a feltöltött
 nemeskep_2.jpg fotóból és a téma arany/zöld színeiből épül fel.
 
+Két változat készül:
+  framed - arany keret + folyamatjelző sáv (docs/loading_geszi_pasziansz.png)
+  blend  - keret nélkül, a filcbe olvadó fotó, folyamatjelző nélkül
+           (docs/loading_geszi_pasziansz_blend.png)
+
 Futtatás:
     pip install pillow numpy
-    python scripts/make_loading_screen.py \
-        --photo nemeskep_2.jpg \
-        --out docs/loading_geszi_pasziansz.png
+    python scripts/make_loading_screen.py --variant framed
+    python scripts/make_loading_screen.py --variant blend
 
 Betűtípusok (SIL Open Font License): Playfair Display (cím) és
 Cinzel Decorative (kis felirat). A script a --font-dir mappában keresi
@@ -225,7 +229,8 @@ def add_frame(canvas: Image.Image):
 
 
 # ------------------------------------------------------------------ fotó -----
-def make_photo(path: Path, w: int, h: int) -> Image.Image:
+def photo_rgb(path: Path, w: int, h: int, vignette: float = 0.26) -> Image.Image:
+    """Fotó 4:3-ra vágva, meleg tónussal és enyhe vignettával."""
     im = Image.open(path).convert("RGB")
     target = w / h
     src = im.width / im.height
@@ -246,11 +251,53 @@ def make_photo(path: Path, w: int, h: int) -> Image.Image:
 
     yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
     rr = np.sqrt(((xx / w - 0.5) * 2) ** 2 + ((yy / h - 0.5) * 2) ** 2) / 1.42
-    a *= (1.0 - 0.26 * np.clip(rr, 0, 1) ** 2.4)[..., None]
+    a *= (1.0 - vignette * np.clip(rr, 0, 1) ** 2.4)[..., None]
 
-    im = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGB").convert("RGBA")
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGB")
+
+
+def make_photo(path: Path, w: int, h: int) -> Image.Image:
+    """Fotó lekerekített sarkokkal, kerethez."""
+    im = photo_rgb(path, w, h).convert("RGBA")
     im.putalpha(rounded_mask((w, h), 9 * S))
     return im
+
+
+def feather_alpha(size, feather: float, corner: float) -> np.ndarray:
+    """Lekerekített téglalap-alakú, lágy szélű maszk (0..1)."""
+    w, h = size
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    qx = np.abs(xx - (w - 1) / 2.0) - (w / 2.0 - corner)
+    qy = np.abs(yy - (h - 1) / 2.0) - (h / 2.0 - corner)
+    sdf = (np.sqrt(np.maximum(qx, 0) ** 2 + np.maximum(qy, 0) ** 2)
+           + np.minimum(np.maximum(qx, qy), 0) - corner)
+    t = np.clip(-sdf / feather, 0, 1)
+    return t * t * (3 - 2 * t)          # smoothstep
+
+
+def make_blended_photo(path: Path, w: int, h: int, feather: float, corner: float,
+                       edge_tint=0.70) -> Image.Image:
+    """
+    A fotó, ami beleolvad a filcbe: a szélei lágyan elhalványulnak, és a
+    perem felé a háttér zöldjébe hajlanak – nincs keret, nincs éles szél.
+    """
+    rgb = photo_rgb(path, w, h, vignette=0.16)
+    alpha = feather_alpha((w, h), feather, corner)
+
+    arr = np.asarray(rgb, dtype=np.float32)
+    felt = np.array([11, 50, 34], dtype=np.float32)      # a háttér alapszíne
+    arr = arr * 0.92 + felt * 0.08                       # finom, egységes tónus
+
+    # a felső, világos ég tónusa közelít a filchez
+    yy = np.linspace(0.0, 1.0, h, dtype=np.float32)[:, None]
+    sky = np.clip(1.0 - yy / 0.26, 0, 1) ** 1.5 * 0.30
+    arr = arr * (1.0 - sky[..., None]) + felt * sky[..., None]
+
+    k = (1.0 - alpha)[..., None] * edge_tint
+    arr = arr * (1.0 - k) + felt * k
+
+    out = np.dstack([np.clip(arr, 0, 255), alpha * 255.0]).astype(np.uint8)
+    return Image.fromarray(out, "RGBA")
 
 
 def frame_photo(photo: Image.Image) -> Image.Image:
@@ -399,7 +446,10 @@ def ensure_font(font_dir: Path, name: str, remote: str) -> Path:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--photo", default=str(ROOT / "docs" / "nemeskep_2.jpg"))
-    ap.add_argument("--out", default=str(ROOT / "docs" / "loading_geszi_pasziansz.png"))
+    ap.add_argument("--variant", choices=("framed", "blend"), default="framed",
+                    help="framed: arany keret + folyamatjelző; blend: keret nélkül, "
+                         "a filcbe olvadó fotó, folyamatjelző nélkül")
+    ap.add_argument("--out", default=None)
     ap.add_argument("--font-dir", default=os.environ.get("FONT_DIR", "/tmp/fonts"))
     args = ap.parse_args()
 
@@ -438,23 +488,48 @@ def main():
 
     add_divider(canvas, 236 * S)
 
-    # ---- fotó arany keretben
-    pw, ph = 640 * S, 480 * S
-    photo = make_photo(Path(args.photo), pw, ph)
-    framed = frame_photo(photo)
-    f_sh = drop_shadow(framed, blur=26 * S, opacity=0.66, offset=(0, 16 * S))
-    paste_center(canvas, f_sh, (CW / 2, 540 * S + 12 * S))
-    paste_center(canvas, framed, (CW / 2, 540 * S))
+    if args.variant == "framed":
+        # ---- fotó arany keretben
+        pw, ph = 640 * S, 480 * S
+        photo = make_photo(Path(args.photo), pw, ph)
+        framed = frame_photo(photo)
+        f_sh = drop_shadow(framed, blur=26 * S, opacity=0.66, offset=(0, 16 * S))
+        paste_center(canvas, f_sh, (CW / 2, 540 * S + 12 * S))
+        paste_center(canvas, framed, (CW / 2, 540 * S))
 
-    # ---- a négy ász legyezőben
-    fan = make_fan(ROOT / "Pasziansz" / "Assets" / "Cards", 202 * S, 294 * S,
-                   bottom_y=1100 * S, center_x=CW / 2)
-    canvas.alpha_composite(fan)
+        # ---- a négy ász legyezőben
+        fan = make_fan(ROOT / "Pasziansz" / "Assets" / "Cards", 202 * S, 294 * S,
+                       bottom_y=1100 * S, center_x=CW / 2)
+        canvas.alpha_composite(fan)
 
-    add_frame(canvas)
-    add_progress(canvas, font(label_font_path, 24 * S))
+        add_frame(canvas)
+        add_progress(canvas, font(label_font_path, 24 * S))
+        default_name = "loading_geszi_pasziansz.png"
+    else:
+        # ---- keret nélkül a filcbe olvadó fotó
+        pw, ph = 1000 * S, 750 * S
+        # halvány fényudvar, hogy a kép ne "úszhasson" a háttéren
+        halo = Image.new("RGBA", (CW, CH), (0, 0, 0, 0))
+        ImageDraw.Draw(halo).ellipse(
+            [CW / 2 - pw / 2 - 70 * S, 618 * S - ph / 2 - 70 * S,
+             CW / 2 + pw / 2 + 70 * S, 618 * S + ph / 2 + 70 * S],
+            fill=(30, 112, 78, 62))
+        halo = halo.filter(ImageFilter.GaussianBlur(95 * S))
+        canvas.alpha_composite(halo)
 
-    out = Path(args.out)
+        photo = make_blended_photo(Path(args.photo), pw, ph,
+                                   feather=300 * S, corner=130 * S)
+        paste_center(canvas, photo, (CW / 2, 618 * S))
+
+        # ---- a négy ász legyezőben, kicsit nagyobban
+        fan = make_fan(ROOT / "Pasziansz" / "Assets" / "Cards", 216 * S, 314 * S,
+                       bottom_y=1150 * S, center_x=CW / 2)
+        canvas.alpha_composite(fan)
+
+        add_frame(canvas)
+        default_name = "loading_geszi_pasziansz_blend.png"
+
+    out = Path(args.out) if args.out else ROOT / "docs" / default_name
     out.parent.mkdir(parents=True, exist_ok=True)
     final = canvas.convert("RGB").resize((W, H), Image.LANCZOS)
     final.save(out, optimize=True)
