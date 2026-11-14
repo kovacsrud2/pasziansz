@@ -53,7 +53,18 @@ namespace Pasziansz.Controls
         private readonly Dictionary<(PileKind Kind, int Index), PileVisual> _piles = new();
         private readonly Dictionary<Card, CardView> _views = new();
         private readonly Dictionary<Card, Point> _positions = new();
-        private readonly Dictionary<Card, (PileRef Pile, int Index, bool FaceUp)> _meta = new();
+        /// <summary>
+        /// Találati adatok laponként: melyik rakásban van, hányadik, felfordítva van-e,
+        /// és mekkora a látható (nem takart) magassága. A látható magasságot az
+        /// elrendezés már úgyis kiszámolja, ezért itt tároljuk – így kattintáskor nem
+        /// kell újra bejárni a modellt.
+        /// </summary>
+        private readonly Dictionary<Card, (PileRef Pile, int Index, bool FaceUp, double VisibleHeight)> _meta = new();
+
+        // Újrafelhasznált segédgyűjtemények az elrendezéshez: így nem készül
+        // lépésenként új halmaz és lista (kevesebb szemétgyűjtési terhelés).
+        private readonly HashSet<Card> _liveCards = new();
+        private readonly List<Card> _staleCards = new();
         private readonly Dictionary<Pile, double> _tableauStep = new();
 
         private readonly Border _dropHighlight = new()
@@ -221,6 +232,45 @@ namespace Pasziansz.Controls
             FullRelayout(animate: true);
         }
 
+        /// <summary>
+        /// A kattintás-felismeréshez tartozó adatok felépítése a jelenlegi tábláról.
+        /// Egyszer fut le elrendezésenként, a lapok számával arányos.
+        /// </summary>
+        private void RebuildHitMetadata()
+        {
+            _meta.Clear();
+            if (_game == null)
+            {
+                return;
+            }
+
+            foreach (var pileLocation in _game.Board.All)
+            {
+                var pile = pileLocation.Pile;
+                var reference = new PileRef(pileLocation.Kind, pileLocation.Index);
+
+                for (int i = 0; i < pile.Count; i++)
+                {
+                    // Csak a nézettel rendelkező lapokra van szükség: a találati
+                    // ciklus a _positions kulcsain megy végig, és onnan indexel ide.
+                    var card = pile.Cards[i];
+                    if (!_positions.ContainsKey(card))
+                    {
+                        continue;
+                    }
+
+                    bool faceUp = IsFaceUp(pile, i);
+                    _meta[card] = (reference, i, faceUp, VisibleCardHeight(pileLocation, i, faceUp));
+                }
+            }
+        }
+
+        /// <summary>Egyezik-e a nézet mérete a kért értékkel (a NaN-t is kezelve).</summary>
+        private static bool IsSameSize(FrameworkElement view, double width, double height) =>
+            !double.IsNaN(view.Width) && !double.IsNaN(view.Height)
+            && Math.Abs(view.Width - width) < 0.01
+            && Math.Abs(view.Height - height) < 0.01;
+
         /// <summary>Teljes újrarajzolás (pl. új osztás után).</summary>
         public void RefreshFromModel() => FullRelayout(animate: false);
 
@@ -312,7 +362,7 @@ namespace Pasziansz.Controls
 
             ComputeTableauSteps();
 
-            var live = new HashSet<Card>();
+            _liveCards.Clear();
             int z = 0;
 
             foreach (var pv in _piles.Values)
@@ -325,7 +375,7 @@ namespace Pasziansz.Controls
                 for (int i = 0; i < pile.Count; i++)
                 {
                     var card = pile.Cards[i];
-                    live.Add(card);
+                    _liveCards.Add(card);
 
                     if (!_views.TryGetValue(card, out var view))
                     {
@@ -338,14 +388,29 @@ namespace Pasziansz.Controls
                         _cardCanvas.Children.Add(view);
                     }
 
-                    view.Width = _cardW;
-                    view.Height = _cardH;
-                    view.Card = card;
-                    view.IsFaceUp = IsFaceUp(pile, i);
+                    // Teljesítmény: a méret és a lap/fordítottság beállítása csak
+                    // akkor, ha tényleg változott. A rács minden lépésnél végigfut a
+                    // lapokon, de ezek az értékek többnyire ugyanazok maradnak – a
+                    // felesleges beállítás újrarajzolást és WPF-értesítéseket vált ki.
+                    if (!IsSameSize(view, _cardW, _cardH))
+                    {
+                        view.Width = _cardW;
+                        view.Height = _cardH;
+                    }
+
+                    if (!Equals(view.Card, card))
+                    {
+                        view.Card = card;
+                    }
+
+                    bool faceUp = IsFaceUp(pile, i);
+                    if (view.IsFaceUp != faceUp)
+                    {
+                        view.IsFaceUp = faceUp;
+                    }
 
                     var point = CardPosition(location, i);
                     _positions[card] = point;
-                    _meta[card] = (new PileRef(location.Kind, location.Index), i, IsFaceUp(pile, i));
 
                     Panel.SetZIndex(view, ++z);
 
@@ -375,9 +440,24 @@ namespace Pasziansz.Controls
                 }
             }
 
-            // Kikerült lapok
-            var stale = _views.Keys.Where(c => !live.Contains(c)).ToList();
-            foreach (var card in stale)
+            // A találati információk (melyik rakásban, hányadik lap, felfordítva-e)
+            // a végén, egyetlen bejárással készülnek el. Korábban a fenti ciklus
+            // minden lapra írt a szótárba, ami lépésenként 52 felesleges írás volt.
+            RebuildHitMetadata();
+
+            // Kikerült lapok: a _views kulcsait bejárva, újrafelhasznált listába
+            // gyűjtjük (a törlést csak utána végezzük, hogy a bejárás biztonságos
+            // legyen). Így nincs LINQ-lista és külön halmaz minden lépésnél.
+            _staleCards.Clear();
+            foreach (var pair in _views)
+            {
+                if (!_liveCards.Contains(pair.Key))
+                {
+                    _staleCards.Add(pair.Key);
+                }
+            }
+
+            foreach (var card in _staleCards)
             {
                 var view = _views[card];
                 _cardCanvas.Children.Remove(view);
@@ -602,11 +682,15 @@ namespace Pasziansz.Controls
             // 1) Kártyák (a legmagasabb Z-indexű találat nyer)
             foreach (var pair in _positions)
             {
-                var hitMeta = _meta[pair.Key];
+                if (!_meta.TryGetValue(pair.Key, out var hitMeta))
+                {
+                    // Nincs találati adat (pl. épp eltűnő lap): nem kattintható.
+                    continue;
+                }
 
                 // Csak a lap látható sávjában adunk találatot: a felette fekvő lap
                 // eltakarja az alatta lévő nagy részét, így a kattintás a takaró lapot éri.
-                double visibleHeight = VisibleCardHeight(hitMeta);
+                double visibleHeight = hitMeta.VisibleHeight;
                 if (visibleHeight <= 0)
                 {
                     // Teljesen takart lap (pl. az 1 lapos húzásnál a korábbi lapok).
@@ -671,29 +755,24 @@ namespace Pasziansz.Controls
         /// A kártya látható (nem takart) magassága. A rakás tetején lévő lap teljes
         /// magasságban látszik, a többiek csak a rájuk csúsztatott sávban.
         /// </summary>
-        private double VisibleCardHeight((PileRef Pile, int Index, bool FaceUp) meta)
+        private double VisibleCardHeight(PileLocation location, int index, bool faceUp)
         {
-            if (_game == null)
-            {
-                return _cardH;
-            }
+            var pile = location.Pile;
+            bool isTop = index == pile.Count - 1;
 
-            var pile = _game.Board.Get(meta.Pile).Pile;
-            bool isTop = meta.Index == pile.Count - 1;
-
-            if (meta.Pile.Kind == PileKind.Tableau)
+            if (location.Kind == PileKind.Tableau)
             {
                 // A lefordított lapok sávja kisebb, mint a felfordítottaké.
-                double step = meta.FaceUp ? StepFor(pile) : FaceDownStep;
+                double step = faceUp ? StepFor(pile) : FaceDownStep;
                 return isTop ? _cardH : Math.Min(_cardH, step);
             }
 
-            if (meta.Pile.Kind == PileKind.Waste)
+            if (location.Kind == PileKind.Waste)
             {
                 // A talonnál a jobb szélső (legfelső) lap látszik teljesen; a régebbiek
                 // csak annyit, hogy épp kilátszanak a legfelső alól. 1 lapos húzásnál
                 // a korábbi lapok teljesen a legfelső alatt vannak.
-                int fromEnd = pile.Count - 1 - meta.Index;
+                int fromEnd = pile.Count - 1 - index;
                 if (fromEnd == 0)
                 {
                     return _cardH;

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:Pasziansz.Controls"
         mc:Ignorable="d"
-        Title="Zöld Pasziánsz"
+        Title="Gészi pasziánsz"
         Width="1260" Height="840"
         MinWidth="980" MinHeight="700"
         WindowStyle="None"
@@ -69,7 +69,7 @@
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel Margin="10,0,0,0" VerticalAlignment="Center">
-                                <TextBlock Text="ZÖLD PASZIÁNSZ" Style="{StaticResource Text.Title}"
+                                <TextBlock Text="GÉSZI PASZIÁNSZ" Style="{StaticResource Text.Title}"
                                            FontSize="13.5" />
                                 <TextBlock x:Name="SubtitleText" Text="Klondike · 1 lapos húzás"
                                            Style="{StaticResource Text.Caption}" FontSize="11" />

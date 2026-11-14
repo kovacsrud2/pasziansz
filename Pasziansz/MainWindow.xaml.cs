@@ -30,6 +30,15 @@ namespace Pasziansz
         private bool _syncingToggles;
         private bool _loadingGame;
 
+        /// <summary>Van-e folytatható mentés (a legutóbbi mentés/törlés eredménye).</summary>
+        private bool _hasSave;
+
+        /// <summary>A legutóbb kiírt mentés tartalma: azonos állapotnál nincs újraírás.</summary>
+        private string? _lastSaveSnapshot;
+
+        /// <summary>Fut-e már ütemezett mentés (a felesleges újraütemezést elkerüli).</summary>
+        private bool _saveScheduled;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -126,6 +135,7 @@ namespace Pasziansz
             StatisticsStore.Save(_statistics);
 
             // Az új osztás felülírja a korábbi félbehagyott partit.
+            _lastSaveSnapshot = null;
             SaveCurrentGame();
             _timer.Start();
             TimeText.Text = "00:00";
@@ -167,11 +177,32 @@ namespace Pasziansz
             if (_winShown)
             {
                 // A megnyert partit nem érdemes folytatni.
-                GameSaveStore.Delete();
+                if (_hasSave)
+                {
+                    GameSaveStore.Delete();
+                    _hasSave = false;
+                }
+
                 return;
             }
 
-            GameSaveStore.Save(_game);
+            // Teljesítmény: a teljes mentés (JSON sorosítás + fájlírás) így is
+            // lefut, de csak ha tényleg változott valami. Az azonos állapot
+            // újramentése felesleges lemezművelet lenne lépésenként.
+            // A lenyomat a játék ÁLLAPOTA (a mentés ideje nélkül), hogy a
+            // változatlan állapot felismerhető legyen. A kiírandó szöveget
+            // ugyanaz a sorosítás adja: így nincs kétszeres munka.
+            var (fingerprint, json) = GameSaveStore.SerializeWithFingerprint(_game);
+            if (fingerprint.Length == 0 || fingerprint == _lastSaveSnapshot)
+            {
+                return;
+            }
+
+            if (GameSaveStore.Write(json))
+            {
+                _lastSaveSnapshot = fingerprint;
+                _hasSave = true;
+            }
         }
 
         /// <summary>Indításkor: van-e folytatható mentett parti, és betölti-e.</summary>
@@ -217,6 +248,10 @@ namespace Pasziansz
                 HookGameEvents(_game);
                 Table.AttachGame(_game);
 
+                // A betöltött parti érvényes mentésből jött: a „Folytatás” aktív marad.
+                _hasSave = true;
+                _lastSaveSnapshot = null;
+
                 _settings.DrawCount = _game.DrawCount;
                 SubtitleText.Text = $"Klondike · {_game.DrawCount} lapos húzás";
                 UpdateDrawModeToggles(_game.DrawCount);
@@ -235,7 +270,14 @@ namespace Pasziansz
             }
         }
 
-        /// <summary>A „Folytatás” gomb csak akkor aktív, ha van mentett parti.</summary>
+        /// <summary>
+        /// A „Folytatás” gomb csak akkor aktív, ha van mentett parti.
+        ///
+        /// Teljesítmény: NEM olvassuk újra és nem parse-oljuk a mentésfájlt – ezt a
+        /// metódust minden lépés után hívjuk, a fájl teljes feldolgozása (52 lap
+        /// értelmezése) pedig az animáció ideje alatt az UI szálon futna.
+        /// Azt használjuk, amit a legutóbbi mentés/törlés amúgy is tud: <see cref="_hasSave"/>.
+        /// </summary>
         private void UpdateResumeButton()
         {
             if (ResumeButton == null || _loadingGame)
@@ -243,7 +285,7 @@ namespace Pasziansz
                 return;
             }
 
-            ResumeButton.IsEnabled = GameSaveStore.HasSave();
+            ResumeButton.IsEnabled = _hasSave;
         }
 
         private void ResumeButton_Click(object sender, RoutedEventArgs e)
@@ -316,8 +358,33 @@ namespace Pasziansz
 
             if (!_loadingGame)
             {
-                SaveCurrentGame();
+                ScheduleSave();
             }
+        }
+
+        /// <summary>
+        /// A mentés elhalasztása az animáció végére.
+        ///
+        /// A lépés utáni átrendezés animációja (~150 ms) ugyanezen a szálon fut.
+        /// Ha a mentés (JSON sorosítás + fájlírás) azonnal, az animáció indulásakor
+        /// futna, az első képkockák késnének – ez látható akadozás. A
+        /// <see cref="DispatcherPriority.Background"/> prioritású művelet csak
+        /// akkor fut le, amikor a felületnek nincs sürgősebb dolga: vagyis a
+        /// kirajzolás és az animáció után.
+        /// </summary>
+        private void ScheduleSave()
+        {
+            if (_saveScheduled)
+            {
+                return;
+            }
+
+            _saveScheduled = true;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _saveScheduled = false;
+                SaveCurrentGame();
+            }), DispatcherPriority.Background);
         }
 
         private void UpdateHeaderUi()
