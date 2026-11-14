@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A játékszabály-motor önálló, felülettől független osztálykönyvtára.
+    Szándékosan NEM WPF-projekt (nincs UseWPF), így a tesztek Linuxon és
+    macOS-en is futnak, a WPF-es felület pedig változatlanul hivatkozza.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Pasziansz.Core</AssemblyName>
+    <RootNamespace>Pasziansz</RootNamespace>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

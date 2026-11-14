@@ -19,7 +19,7 @@ namespace Pasziansz
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly KlondikeGame _game = new();
+        private KlondikeGame _game = new();
         private readonly Statistics _statistics;
         private readonly DispatcherTimer _timer;
         private readonly Settings _settings;
@@ -28,6 +28,7 @@ namespace Pasziansz
         private bool _settingsLoaded;
         private bool _isDragging;
         private bool _syncingToggles;
+        private bool _loadingGame;
 
         public MainWindow()
         {
@@ -47,8 +48,7 @@ namespace Pasziansz
             Table.StockClicked += (_, _) => DrawCard();
             Table.SelectionChanged += (_, _) => UpdateHintStatus();
 
-            _game.GameChanged += (_, _) => OnGameStateChanged();
-            _game.GameWon += (_, _) => OnGameWon();
+            HookGameEvents(_game);
 
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;
@@ -99,7 +99,16 @@ namespace Pasziansz
             _settingsLoaded = true;
             SyncSettingsUi();
 
-            StartNewGame(_settings.DrawCount);
+            if (TryResumeSavedGame())
+            {
+                // A betöltött parti módja az érvényes; a beállítást ehhez igazítjuk.
+                _settings.DrawCount = _game.DrawCount;
+            }
+            else
+            {
+                StartNewGame(_settings.DrawCount);
+            }
+
             _timer.Start();
             UpdateStatisticsUi();
             Table.Focus();
@@ -115,11 +124,15 @@ namespace Pasziansz
             _game.NewGame(drawCount);
             _statistics.RegisterGameStarted();
             StatisticsStore.Save(_statistics);
+
+            // Az új osztás felülírja a korábbi félbehagyott partit.
+            SaveCurrentGame();
             _timer.Start();
             TimeText.Text = "00:00";
 
             _settings.DrawCount = _game.DrawCount;
             SubtitleText.Text = $"Klondike · {_game.DrawCount} lapos húzás";
+            UpdateDrawModeToggles(_game.DrawCount);
             Table.RefreshFromModel();
             Table.Focus();
             ShowToast(drawCount == 1
@@ -128,6 +141,142 @@ namespace Pasziansz
 
             UpdateStatisticsUi();
             OnGameStateChanged();
+        }
+
+        // ====================================================================
+        //  Játék mentése és folytatása
+        // ====================================================================
+
+        /// <summary>Egy játékpéldány eseményeinek bekötése (új példány betöltésekor is).</summary>
+        private void HookGameEvents(KlondikeGame game)
+        {
+            game.GameChanged += (_, _) => OnGameStateChanged();
+            game.GameWon += (_, _) => OnGameWon();
+        }
+
+        /// <summary>A jelenlegi parti mentése a háttérben (hiba esetén csendben).</summary>
+        private void SaveCurrentGame()
+        {
+            if (_loadingGame)
+            {
+                // Betöltés közben az állapot még nem a betöltött parti: a fájlhoz
+                // nem nyúlunk, különben felülírnánk a folytatni kívánt mentést.
+                return;
+            }
+
+            if (_winShown)
+            {
+                // A megnyert partit nem érdemes folytatni.
+                GameSaveStore.Delete();
+                return;
+            }
+
+            GameSaveStore.Save(_game);
+        }
+
+        /// <summary>Indításkor: van-e folytatható mentett parti, és betölti-e.</summary>
+        private bool TryResumeSavedGame()
+        {
+            var saved = GameSaveStore.Load();
+            if (saved == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                LoadSavedGame(saved);
+            }
+            catch (Exception ex)
+            {
+                // A betöltés hibája nem némíthatja el a mentést: hagyjuk meg a fájlt,
+                // és jelezzük a hibát, hogy ki lehessen deríteni az okát.
+                ShowToast($"A mentett parti betöltése nem sikerült: {ex.Message}", "!", 6.0);
+                return false;
+            }
+
+            ShowToast($"Folytatod a korábban abbahagyott partit: {_game.Score} pont, " +
+                      $"{_game.MoveCount} lépés.", "↺", 3.2);
+            return true;
+        }
+
+        /// <summary>Egy mentett állapot betöltése a felületre.</summary>
+        private void LoadSavedGame(SavedGame saved)
+        {
+            _loadingGame = true;
+            _winShown = false;
+
+            try
+            {
+                // Új játékpéldány: a nézet a lap-példányokra épül, ezért teljes
+                // újracsatolás kell (a régi példány eseményeit le kell választani).
+                var game = new KlondikeGame();
+                saved.ApplyTo(game);
+
+                _game = game;
+                HookGameEvents(_game);
+                Table.AttachGame(_game);
+
+                _settings.DrawCount = _game.DrawCount;
+                SubtitleText.Text = $"Klondike · {_game.DrawCount} lapos húzás";
+                UpdateDrawModeToggles(_game.DrawCount);
+                HintStatusText.Text = string.Empty;
+
+                _timer.Start();
+                UpdateClock();
+                UpdateHeaderUi();
+                UpdateButtonStates();
+                UpdateResumeButton();
+                Table.Focus();
+            }
+            finally
+            {
+                _loadingGame = false;
+            }
+        }
+
+        /// <summary>A „Folytatás” gomb csak akkor aktív, ha van mentett parti.</summary>
+        private void UpdateResumeButton()
+        {
+            if (ResumeButton == null || _loadingGame)
+            {
+                return;
+            }
+
+            ResumeButton.IsEnabled = GameSaveStore.HasSave();
+        }
+
+        private void ResumeButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_winShown)
+            {
+                StartNewGame(_game.DrawCount);
+                return;
+            }
+
+            var saved = GameSaveStore.Load();
+            if (saved == null)
+            {
+                SoundPlayer.PlayInvalid();
+                ShowToast("Nincs folytatható mentett parti.", "↺", 2.0);
+                return;
+            }
+
+            try
+            {
+                LoadSavedGame(saved);
+            }
+            catch (Exception ex)
+            {
+                // A mentésfájlhoz nem nyúlunk: így a hiba kijavítása után a parti
+                // még mindig folytatható.
+                ShowToast($"A mentett parti betöltése nem sikerült: {ex.Message}", "!", 6.0);
+                return;
+            }
+
+            SoundPlayer.PlayCardDraw();
+            ShowToast("Mentett parti betöltve.", "↺", 1.8);
+            UpdateResumeButton();
         }
 
         private void DrawCard()
@@ -163,6 +312,12 @@ namespace Pasziansz
         {
             UpdateHeaderUi();
             UpdateButtonStates();
+            UpdateResumeButton();
+
+            if (!_loadingGame)
+            {
+                SaveCurrentGame();
+            }
         }
 
         private void UpdateHeaderUi()
@@ -351,7 +506,11 @@ namespace Pasziansz
 
         private void SyncSettingsUi()
         {
-            UpdateDrawModeToggles(_game.DrawCount);
+            // FONTOS: itt nem indítunk osztást. A NewGame GameChanged eseményt vált
+            // ki, ami elmentené az állást – még a mentett parti betöltése ELŐTT,
+            // ezzel felülírva a fájlt. A húzási módot az indítás állítja be:
+            // betöltés esetén a mentett parti módját, egyébként a beállításét.
+            UpdateDrawModeToggles(_settings.DrawCount);
             UpdateBackStyleUi(_settings.CardBackStyle);
             HintStatusText.Text = string.Empty;
         }
@@ -485,6 +644,11 @@ namespace Pasziansz
                 case Key.F5:
                     e.Handled = true;
                     RestartButton_Click(this, new RoutedEventArgs());
+                    return;
+
+                case Key.F9:
+                    e.Handled = true;
+                    ResumeButton_Click(this, new RoutedEventArgs());
                     return;
 
             }
@@ -639,6 +803,9 @@ namespace Pasziansz
 
             _settings.WindowMaximized = WindowState == WindowState.Maximized;
             _settings.DrawCount = _game.DrawCount;
+
+            // A félbehagyott parti mentése, hogy legközelebb folytatható legyen.
+            SaveCurrentGame();
 
             SettingsStore.Save(_settings);
             StatisticsStore.Save(_statistics);

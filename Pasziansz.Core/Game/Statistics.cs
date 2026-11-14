@@ -98,8 +98,7 @@ namespace Pasziansz.Game
             WriteIndented = true
         };
 
-        public static string FilePath =>
-            Path.Combine(Services.SettingsStore.SettingsFolder, "statistics.json");
+        public static string FilePath => AppPaths.File("statistics.json");
 
         public static Statistics Load()
         {
@@ -126,7 +125,7 @@ namespace Pasziansz.Game
         {
             try
             {
-                Directory.CreateDirectory(Services.SettingsStore.SettingsFolder);
+                Directory.CreateDirectory(AppPaths.DataFolder);
                 File.WriteAllText(FilePath, JsonSerializer.Serialize(statistics, Options));
             }
             catch

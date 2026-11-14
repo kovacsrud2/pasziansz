@@ -35,11 +35,22 @@ namespace Pasziansz.Game
     /// </summary>
     public sealed class KlondikeGame
     {
-        private const int MaxUndoDepth = 500;
+        /// <summary>A visszavonható lépések felső korlátja (a legrégebbiek kiesnek).</summary>
+        public const int MaxUndoDepth = 500;
 
         private readonly List<MoveRecord> _undoStack = new();
         private readonly Random _random;
         private List<Card>? _lastDeal;
+
+        /// <summary>A lépés felvétele a visszavonás-verembe, a mérethatár betartásával.</summary>
+        private void PushUndo(MoveRecord record)
+        {
+            _undoStack.Add(record);
+            if (_undoStack.Count > MaxUndoDepth)
+            {
+                _undoStack.RemoveAt(0);
+            }
+        }
 
         public KlondikeGame(Random? random = null)
         {
@@ -56,7 +67,8 @@ namespace Pasziansz.Game
 
         public int MoveCount { get; private set; }
 
-        public int RecycleCount { get; private set; }
+        /// <summary>A talon újrakeveréseinek száma (a mentett állapot visszaállításához írható).</summary>
+        public int RecycleCount { get; set; }
 
         /// <summary>A gyűjtőhelyeken lévő lapok száma (0..52).</summary>
         public int CardsOnFoundation => Board.Foundation.Sum(f => f.Pile.Count);
@@ -67,6 +79,7 @@ namespace Pasziansz.Game
 
         public int UndoDepth => _undoStack.Count;
 
+        /// <summary>A parti kezdete (a mentett parti folytatásakor visszaállítjuk).</summary>
         public DateTime GameStartedAt { get; private set; } = DateTime.Now;
 
         public TimeSpan Elapsed => DateTime.Now - GameStartedAt;
@@ -76,6 +89,12 @@ namespace Pasziansz.Game
 
         /// <summary>Az utolsó osztás lapjai (a húzópakli aljától a tetejéig), az újraosztáshoz.</summary>
         public bool CanRestart => _lastDeal is { Count: var count } && count == Deck.FullDeckSize;
+
+        /// <summary>
+        /// Az aktuális osztás lapjai a kiosztás sorrendjében (az újraosztáshoz).
+        /// Mentéskor ezt is tárolni kell, mert a játék közben a lapok már máshol vannak.
+        /// </summary>
+        public IReadOnlyList<Card>? Deal => _lastDeal;
 
         public event EventHandler<MoveRecord>? MovePerformed;
 
@@ -130,6 +149,62 @@ namespace Pasziansz.Game
             GameChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// A parti állapotának visszaállítása mentett adatokból (játék folytatása).
+        /// A <paramref name="board"/> a hét oszlop, a <paramref name="stock"/> a húzópakli
+        /// és a <paramref name="waste"/> a talon lapjai alulról felfelé, a lefordított
+        /// lapok számával együtt. A tábla teljesen felülíródik, a visszavonás-verem kiürül.
+        /// </summary>
+        public void LoadState(
+            int drawCount,
+            int score,
+            int moveCount,
+            int recycleCount,
+            DateTime gameStartedAt,
+            IReadOnlyList<PileState> tableau,
+            IReadOnlyList<PileState> foundation,
+            PileState stock,
+            PileState waste,
+            IEnumerable<Card>? deal = null)
+        {
+            Board.Reset();
+            _undoStack.Clear();
+
+            DrawCount = drawCount == 3 ? 3 : 1;
+            Score = Scoring.Clamp(score);
+            MoveCount = Math.Max(0, moveCount);
+            RecycleCount = Math.Max(0, recycleCount);
+            GameStartedAt = gameStartedAt;
+
+            foreach (var state in tableau.Concat(foundation))
+            {
+                var pile = Board.Get(state.Reference).Pile;
+                pile.AddRange(state.Cards);
+                pile.FaceDownCount = state.FaceDownCount;
+            }
+
+            var stockPile = Board.Stock.Pile;
+            stockPile.AddRange(stock.Cards);
+            stockPile.FaceDownCount = stock.FaceDownCount;
+
+            var wastePile = Board.Waste.Pile;
+            wastePile.AddRange(waste.Cards);
+            wastePile.FaceDownCount = waste.FaceDownCount;
+
+            // Az újraosztáshoz (F5) a mentett osztás sorrendje kell. Ha a mentés nem
+            // tartalmazza (régebbi fájl), az újraosztás nem lesz elérhető.
+            var restoredDeal = deal?.ToList();
+            _lastDeal = restoredDeal is { Count: var count } && count == Deck.FullDeckSize
+                ? restoredDeal
+                : null;
+
+            LastAction = "Mentett játék folytatása";
+            GameChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Egy rakás tartalma a mentéshez / betöltéshez.</summary>
+        public readonly record struct PileState(PileRef Reference, IReadOnlyList<Card> Cards, int FaceDownCount);
+
         /// <summary>Az utolsó osztás megismétlése ugyanazokkal a lapokkal, tiszta pontszámmal.</summary>
         public MoveResult RestartCurrentDeal()
         {
@@ -179,7 +254,7 @@ namespace Pasziansz.Game
                 MovesBefore = MoveCount - 1
             };
 
-            _undoStack.Add(record);
+            PushUndo(record);
             MovePerformed?.Invoke(this, record);
             GameChanged?.Invoke(this, EventArgs.Empty);
             return MoveResult.Ok(record, LastAction);
@@ -222,7 +297,7 @@ namespace Pasziansz.Game
                 MovesBefore = movesBefore
             };
 
-            _undoStack.Add(record);
+            PushUndo(record);
             MovePerformed?.Invoke(this, record);
             GameChanged?.Invoke(this, EventArgs.Empty);
             return MoveResult.Ok(record, LastAction);
@@ -256,7 +331,7 @@ namespace Pasziansz.Game
                 MovesBefore = movesBefore
             };
 
-            _undoStack.Add(record);
+            PushUndo(record);
             MoveCount++;
             LastAction = $"{card?.ShortCode} felfordítva";
             MovePerformed?.Invoke(this, record);
@@ -359,11 +434,7 @@ namespace Pasziansz.Game
             LastAction = $"{parts} → {to}";
 
             var record = MoveRecord.Transfer(from, to, moving, flipped, scoreBefore, movesBefore);
-            _undoStack.Add(record);
-            if (_undoStack.Count > MaxUndoDepth)
-            {
-                _undoStack.RemoveAt(0);
-            }
+            PushUndo(record);
 
             MovePerformed?.Invoke(this, record);
             GameChanged?.Invoke(this, EventArgs.Empty);

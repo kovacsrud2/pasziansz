@@ -56,7 +56,7 @@
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
                                    Text="−20 pont a talon újrakeveréséért" />
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
-                                   Text="−100 pont, ha a talonból vett lapot visszateszed a pakliba" />
+                                   Text="A pontszám soha nem csökken nulla alá." />
 
                         <TextBlock Text="Billentyűk" Style="{StaticResource Text.SectionHeader}" />
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="Szóköz – húzás, illetve a kiválasztott lap felpakolása" />
@@ -64,7 +64,11 @@
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="H – tipp kérése" />
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="A – automatikus felpakolás a gyűjtőhelyekre" />
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="Ctrl+Z – az utolsó lépés visszavonása" />
-                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="F2 – új osztás, F5 – ugyanennek az osztásnak az újrajátszása" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="F2 – új osztás, F5 – ugyanennek az osztásnak az újrajátszása, F9 – mentett parti folytatása" />
+
+                        <TextBlock Text="Játék mentése" Style="{StaticResource Text.SectionHeader}" />
+                        <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
+                                   Text="A félbehagyott partit a játék automatikusan menti (a program bezárásakor is). Indításkor onnan folytatódik, ahol abbamaradt; a Folytatás gombbal vagy az F9 billentyűvel bármikor visszatérhetsz hozzá. Új osztás indításakor a korábbi mentés törlődik." />
                     </StackPanel>
                 </ScrollViewer>
 

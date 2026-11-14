@@ -183,6 +183,15 @@
                                         <TextBlock Text="Új játék" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+                                <Button x:Name="ResumeButton" Style="{StaticResource Button.Base}"
+                                        Click="ResumeButton_Click"
+                                        ToolTip="A legutóbb abbahagyott parti folytatása"
+                                        Margin="0,0,6,0" IsEnabled="False">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="↺" FontSize="15" Margin="0,0,7,0" VerticalAlignment="Center" />
+                                        <TextBlock Text="Folytatás" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </Button>
                                 <Button x:Name="RestartButton" Style="{StaticResource Button.Base}"
                                         Click="RestartButton_Click" ToolTip="Ugyanennek az osztásnak az újrajátszása (F5)"
                                         Margin="0,0,6,0">
@@ -285,6 +294,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
 
                                         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource KeyCap}"><TextBlock Text="Szóköz" Style="{StaticResource KeyCap.Text}" /></Border>
@@ -310,6 +320,9 @@
 
                                         <Border Grid.Row="7" Grid.Column="0" Style="{StaticResource KeyCap}"><TextBlock Text="F5" Style="{StaticResource KeyCap.Text}" /></Border>
                                         <TextBlock Grid.Row="7" Grid.Column="1" Text="Ugyanazon osztás újrajátszása" Style="{StaticResource Text.Body}" />
+
+                                        <Border Grid.Row="8" Grid.Column="0" Style="{StaticResource KeyCap}"><TextBlock Text="F9" Style="{StaticResource KeyCap.Text}" /></Border>
+                                        <TextBlock Grid.Row="8" Grid.Column="1" Text="Mentett parti folytatása" Style="{StaticResource Text.Body}" />
                                     </Grid>
                                 </Border>
 
