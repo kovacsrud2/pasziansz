@@ -198,6 +198,89 @@ public class GameSaveTests
     }
 
     [Fact]
+    public void Serialize_ThenWrite_ProducesTheSameSaveAsSave()
+    {
+        // A kétlépéses mentés (Serialize + Write) ugyanazt az állapotot adja,
+        // mint a közvetlen Save – a játék ezt használja a felesleges írások
+        // kihagyásához.
+        var game = PlayedGame(13);
+        string direct = TempSavePath();
+        string split = TempSavePath();
+
+        try
+        {
+            Assert.True(GameSaveStore.Save(game, direct));
+            Assert.True(GameSaveStore.Write(GameSaveStore.Serialize(game), split));
+
+            var a = GameSaveStore.Load(direct);
+            var b = GameSaveStore.Load(split);
+            Assert.NotNull(a);
+            Assert.NotNull(b);
+
+            // A mentés ideje (SavedAt) eltérhet, ezért a táblát hasonlítjuk össze.
+            Assert.Equal(Snap.Of(ApplyTo(a!)), Snap.Of(ApplyTo(b!)));
+        }
+        finally
+        {
+            File.Delete(direct);
+            File.Delete(split);
+        }
+    }
+
+    [Fact]
+    public void SerializeWithFingerprint_IsStableForAnUnchangedGame()
+    {
+        // Változatlan állapotnál a lenyomat azonos: ez teszi lehetővé, hogy a játék
+        // azonos állapotnál kihagyja a fájlírást. (A mentés ideje nem része.)
+        var game = BoardSetup.EmptyGame();
+        BoardSetup.SetTableau(game, 0, 1, "9C", "8H");
+        BoardSetup.SetStock(game, "5H", "4S");
+        BoardSetup.SetWaste(game, "KD");
+
+        var first = GameSaveStore.SerializeWithFingerprint(game);
+        var second = GameSaveStore.SerializeWithFingerprint(game);
+
+        Assert.NotEqual(string.Empty, first.Fingerprint);
+        Assert.Equal(first.Fingerprint, second.Fingerprint);
+        Assert.Contains("\"DrawCount\"", first.Json);
+    }
+
+    [Fact]
+    public void SerializeWithFingerprint_ChangesWhenTheBoardChanges()
+    {
+        var game = BoardSetup.EmptyGame();
+        BoardSetup.SetTableau(game, 0, 1, "9C", "8H");
+        BoardSetup.SetWaste(game, "AS");
+        string before = GameSaveStore.SerializeWithFingerprint(game).Fingerprint;
+
+        // A talon tetején lévő ász felkerül a gyűjtőhelyre: ez biztosan érvényes lépés.
+        Assert.True(game.Move(PileRef.Waste(), 0, PileRef.Foundation(3)).Success);
+
+        string after = GameSaveStore.SerializeWithFingerprint(game).Fingerprint;
+        Assert.NotEqual(before, after);
+    }
+
+    [Fact]
+    public void Write_RejectsEmptyContent()
+    {
+        // Ha a sorosítás nem sikerült (üres szöveg), nem írunk félkész fájlt.
+        string path = TempSavePath();
+
+        try
+        {
+            Assert.False(GameSaveStore.Write(string.Empty, path));
+            Assert.False(File.Exists(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void ApplyTo_KeepsThePlayedTime()
     {
         // A folytatott parti órája a játékidőt viszi tovább, nem a mentés és a

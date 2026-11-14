@@ -219,6 +219,77 @@ namespace Pasziansz.Game
             Save(Capture(game), filePath);
 
         /// <summary>
+        /// A jelenlegi állapot JSON-je (mentésre kész szöveg). Hiba esetén üres.
+        ///
+        /// Két lépésre bontva (<see cref="Serialize"/> + <see cref="Write"/>) a hívó
+        /// össze tudja hasonlítani a korábbival, és azonos állapotnál kihagyhatja a
+        /// fájlírást. A játék minden lépés után ment, ezért ez érezhető nyereség.
+        /// </summary>
+        public static string Serialize(KlondikeGame game) =>
+            TrySerialize(Capture(game), keepTimestamp: true);
+
+        /// <summary>
+        /// A játék állapotának lenyomata és a kiírandó mentés EGYÜTT – egyetlen
+        /// sorosítással. A lenyomat a mentés idejét (<c>SavedAt</c>) nem tartalmazza,
+        /// mert az minden hívásnál más lenne, és a „változatlan-e az állapot”
+        /// kérdésre nem adna használható választ.
+        /// </summary>
+        public static (string Fingerprint, string Json) SerializeWithFingerprint(KlondikeGame game)
+        {
+            try
+            {
+                var saved = Capture(game);
+                string fingerprint = JsonSerializer.Serialize(saved, Options);
+
+                saved.SavedAt = DateTime.Now;
+                return (fingerprint, JsonSerializer.Serialize(saved, Options));
+            }
+            catch
+            {
+                return (string.Empty, string.Empty);
+            }
+        }
+
+        private static string TrySerialize(SavedGame saved, bool keepTimestamp)
+        {
+            try
+            {
+                if (!keepTimestamp)
+                {
+                    saved.SavedAt = default;
+                }
+
+                return JsonSerializer.Serialize(saved, Options);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>Egy korábban előállított mentés kiírása. Siker esetén <c>true</c>.</summary>
+        public static bool Write(string json, string? filePath = null)
+        {
+            if (string.IsNullOrEmpty(json))
+            {
+                return false;
+            }
+
+            string path = filePath ?? FilePath;
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path) ?? AppPaths.DataFolder);
+                File.WriteAllText(path, json);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Egy pillanatkép mentése. A <paramref name="filePath"/> csak a tesztekhez kell,
         /// a játék az alapértelmezett helyre ment. Siker esetén <c>true</c>.
         /// </summary>

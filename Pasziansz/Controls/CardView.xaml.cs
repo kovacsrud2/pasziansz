@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -38,10 +39,36 @@ namespace Pasziansz.Controls
             Stretch = Stretch.UniformToFill
         };
 
+        // A keret (kijelölés / tipp / lerakási cél) ecsetjei. Korábban minden
+        // frissítéskor új SolidColorBrush készült laponként és állapotváltáskor,
+        // ami felesleges terhelés volt a rajzolási körben. Ezek változatlanok,
+        // ezért elég egyszer létrehozni őket (Freeze -> gyorsabb kirajzolás).
+        private static readonly Brush RingDropTarget = CreateFrozen(0x2F, 0xAE, 0x72);
+        private static readonly Brush RingHint = CreateFrozen(0x5A, 0xD8, 0x9C);
+        private static readonly Brush RingSelected = CreateFrozen(0xD8, 0xBC, 0x78);
+        private static readonly Brush FallbackRed = CreateFrozen(0xB3, 0x2A, 0x2A);
+        private static readonly Brush FallbackBlack = CreateFrozen(0x1B, 0x1B, 0x1B);
+
+        private static Brush CreateFrozen(byte r, byte g, byte b)
+        {
+            var brush = new SolidColorBrush(Color.FromRgb(r, g, b));
+            brush.Freeze();
+            return brush;
+        }
+
         public CardView()
         {
             InitializeComponent();
-            Loaded += (_, _) => UpdateVisual();
+
+            // A betöltéskori egyszeri frissítés után a tulajdonság-változások
+            // gondoskodnak a megjelenésről.
+            Loaded += OnFirstLoaded;
+        }
+
+        private void OnFirstLoaded(object sender, RoutedEventArgs e)
+        {
+            Loaded -= OnFirstLoaded;
+            UpdateVisual();
         }
 
         public Card? Card
@@ -91,6 +118,15 @@ namespace Pasziansz.Controls
         {
             if (d is CardView view)
             {
+                // Teljesítmény: a teljes újrarajzolás (kép feloldása a
+                // ResourceDictionary-ből) csak akkor kell, ha tényleg változott a
+                // lap vagy a fordítottsága. A rács minden lépésnél beállítja a
+                // tulajdonságokat, de az érték többnyire ugyanaz.
+                if (Equals(e.OldValue, e.NewValue))
+                {
+                    return;
+                }
+
                 view.UpdateVisual();
             }
         }
@@ -139,9 +175,7 @@ namespace Pasziansz.Controls
                 FallbackLayer.Visibility = Visibility.Visible;
                 FallbackRank.Text = Models.Card.RankToCode(Card.Rank);
                 FallbackSuit.Text = Card.SuitSymbol;
-                FallbackSuit.Foreground = Card.IsRed
-                    ? new SolidColorBrush(Color.FromRgb(0xB3, 0x2A, 0x2A))
-                    : new SolidColorBrush(Color.FromRgb(0x1B, 0x1B, 0x1B));
+                FallbackSuit.Foreground = Card.IsRed ? FallbackRed : FallbackBlack;
             }
         }
 
@@ -153,17 +187,17 @@ namespace Pasziansz.Controls
 
             if (IsDropTarget)
             {
-                SelectionRing.BorderBrush = new SolidColorBrush(Color.FromRgb(0x2F, 0xAE, 0x72));
+                SelectionRing.BorderBrush = RingDropTarget;
                 SelectionRing.BorderThickness = new Thickness(3.5);
             }
             else if (IsHinted)
             {
-                SelectionRing.BorderBrush = new SolidColorBrush(Color.FromRgb(0x5A, 0xD8, 0x9C));
+                SelectionRing.BorderBrush = RingHint;
                 SelectionRing.BorderThickness = new Thickness(3.5);
             }
             else
             {
-                SelectionRing.BorderBrush = new SolidColorBrush(Color.FromRgb(0xD8, 0xBC, 0x78));
+                SelectionRing.BorderBrush = RingSelected;
                 SelectionRing.BorderThickness = new Thickness(2.5);
             }
 
@@ -171,15 +205,48 @@ namespace Pasziansz.Controls
             SelectionRing.Opacity = IsSelected ? 1.0 : 0.85;
         }
 
+        /// <summary>
+        /// A lap képének gyorsítótára (erőforrás-kulcs -> kép). A
+        /// <see cref="Application.TryFindResource"/> több szótáron át keres, ezért
+        /// laponként és újrarajzolásonként ismételni pazarló: összesen 52 kulcs van,
+        /// ezeket elég egyszer feloldani.
+        /// </summary>
+        private static readonly Dictionary<string, ImageSource?> ImageCache = new();
+
         private static ImageSource? TryFindCardImage(string key)
         {
+            lock (ImageCache)
+            {
+                if (ImageCache.TryGetValue(key, out var cached))
+                {
+                    return cached;
+                }
+            }
+
+            ImageSource? image = null;
             try
             {
-                return Application.Current?.TryFindResource(key) as ImageSource;
+                image = Application.Current?.TryFindResource(key) as ImageSource;
             }
             catch
             {
-                return null;
+                // Ha a kép nem található, marad a szöveges tartalék.
+            }
+
+            lock (ImageCache)
+            {
+                ImageCache[key] = image;
+            }
+
+            return image;
+        }
+
+        /// <summary>A gyorsítótár ürítése (téma-/erőforrás-váltáskor).</summary>
+        public static void ClearImageCache()
+        {
+            lock (ImageCache)
+            {
+                ImageCache.Clear();
             }
         }
     }

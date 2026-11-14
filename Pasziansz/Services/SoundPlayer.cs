@@ -24,7 +24,14 @@ namespace Pasziansz.Services
 
         private static readonly Dictionary<Effect, Uri> Cache = new Dictionary<Effect, Uri>();
         private static readonly object Sync = new object();
-        private static MediaPlayer? _player;
+
+        /// <summary>
+        /// Hatás-onként egy-egy lejátszó. Korábban egyetlen közös lejátszót
+        /// használtunk, és minden hang előtt bezártuk, majd újra megnyitottuk a
+        /// WAV-fájlt – ez lépésenként egy lemez-hozzáférést jelentett az UI szálon.
+        /// A megnyitott lejátszókat megtartjuk, és csak visszatekerjük.
+        /// </summary>
+        private static readonly Dictionary<Effect, MediaPlayer> Players = new Dictionary<Effect, MediaPlayer>();
 
         public static bool Enabled { get; set; } = true;
 
@@ -50,23 +57,29 @@ namespace Pasziansz.Services
 
             try
             {
-                Uri uri;
+                MediaPlayer player;
                 lock (Sync)
                 {
-                    if (!Cache.TryGetValue(effect, out var cached))
+                    if (!Cache.TryGetValue(effect, out var uri))
                     {
-                        cached = CreateWav(effect);
-                        Cache[effect] = cached;
+                        uri = CreateWav(effect);
+                        Cache[effect] = uri;
                     }
 
-                    uri = cached;
+                    if (!Players.TryGetValue(effect, out player))
+                    {
+                        player = new MediaPlayer();
+                        player.Open(uri);
+                        player.MediaFailed += (_, _) => { };  // a hang nem kritikus
+                        Players[effect] = player;
+                    }
                 }
 
-                _player ??= new MediaPlayer();
-                _player.Close();
-                _player.Open(uri);
-                _player.Volume = Math.Clamp(Volume, 0, 1) * 0.9;
-                _player.Play();
+                player.Volume = Math.Clamp(Volume, 0, 1) * 0.9;
+
+                // Visszatekerés az elejére: így újra megszólal, fájl-hozzáférés nélkül.
+                player.Position = TimeSpan.Zero;
+                player.Play();
             }
             catch
             {
