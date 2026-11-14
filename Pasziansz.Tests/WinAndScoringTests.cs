@@ -130,16 +130,30 @@ public class WinTests
     public void GameWon_FiresExactlyOnce()
     {
         var game = BoardSetup.EmptyGame();
+        // 48 lap a gyűjtőhelyeken (színenként ász..dáma), a négy király az oszlopokban.
         BoardSetup.FillFoundationExceptKings(game);
         BoardSetup.SetTableau(game, 0, 0, "KC");
+        BoardSetup.SetTableau(game, 1, 0, "KD");
+        BoardSetup.SetTableau(game, 2, 0, "KH");
+        BoardSetup.SetTableau(game, 3, 0, "KS");
 
         int won = 0;
         game.GameWon += (_, _) => won++;
 
-        // 51 lap után még nincs győzelem
+        Assert.Equal(48, game.CardsOnFoundation);
+
+        // 49., 50. és 51. lap: még nincs győzelem.
+        Assert.True(game.Move(PileRef.Tableau(0), 0, PileRef.Foundation(0)).Success);
+        Assert.True(game.Move(PileRef.Tableau(1), 0, PileRef.Foundation(1)).Success);
+        Assert.True(game.Move(PileRef.Tableau(2), 0, PileRef.Foundation(2)).Success);
+        Assert.Equal(51, game.CardsOnFoundation);
+        Assert.False(game.IsWon);
         Assert.Equal(0, won);
 
-        game.Move(PileRef.Tableau(0), 0, PileRef.Foundation(0));
+        // Az 52. lap váltja ki a győzelmet – egyszer.
+        Assert.True(game.Move(PileRef.Tableau(3), 0, PileRef.Foundation(3)).Success);
+        Assert.True(game.IsWon);
+        Assert.Equal(52, game.CardsOnFoundation);
         Assert.Equal(1, won);
     }
 
@@ -206,9 +220,12 @@ public class WinTests
             break;
         }
 
-        Assert.True(game.RecycleCount > 0, "A paklinak meg kell fordulnia.");
+        // Ebben az osztásban a húzási sorrend színenként ász..király, így a parti
+        // újrakeverés nélkül is kirakható (ezt a lépésszám alatti ellenőrzés mutatja).
         Assert.True(game.IsWon, "A felépített osztást ki kell rakni.");
         Assert.Equal(52, game.CardsOnFoundation);
         Assert.Equal(1, won);
+        Assert.Equal(0, game.Board.Stock.Pile.Count);
+        Assert.Equal(0, game.Board.Waste.Pile.Count);
     }
 }
