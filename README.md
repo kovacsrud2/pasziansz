@@ -12,7 +12,7 @@ Klasszikus **Klondike pasziánsz** C# / WPF nyelven, teljesen egyedi, zöld tém
 - **Kártyák resource-ként** – az 52 lap és a három kártyahátlap PNG-ként beépül a binárisba, és `ResourceDictionary`-ből (`Resources/Cards.xaml`) érkezik, nem fájlrendszerről.
 - **Három választható kártyahátlap** – fenyőzöld (alapértelmezett), tengerkék, bordóvörös – a zöld árnyalataihoz igazítva.
 - **Kétféle mozgatás** – kattintás + célrakásra kattintás, vagy egérrel való húzás; dupla kattintás = felpakolás a gyűjtőhelyre.
-- **Visszavonás** korlátlanul (lépésenként), **tipp**, **automatikus felpakolás**, **újraosztás** ugyanazzal a paklival.
+- **Visszavonás** az utolsó 500 lépésre, **tipp**, **automatikus felpakolás**, **újraosztás** ugyanazzal a paklival.
 - **Pontozás** a klasszikus Klondike szabály szerint, valamint statisztika (játszmák, nyerési arány, legjobb idő és pontszám).
 - **Animált lapmozgás**, hangeffektusok (generált, külső fájl nélkül), lebegő hibaüzenetek.
 - **Mentett beállítások** és statisztika: `%APPDATA%\ZoldPasziansz\`.
@@ -61,13 +61,13 @@ Az oszlopokra csak **váltakozó színnel** és **eggyel kisebb értékkel** ker
 A lefordított lapok alól a felette lévő lapok elmozgatásával szabadulnak fel a lapok.
 
 Pontozás: +10 gyűjtőhelyre tett lap, +5 talonból oszlopra tett lap, +15 felfordítás,
-−15 gyűjtőhelyről visszavett lap, −20 talon újrakeverése, −100 a pakliba visszatett talonlap.
+−15 gyűjtőhelyről visszavett lap, −20 talon újrakeverése. A pontszám soha nem megy nulla alá.
 
 ## Projekt felépítése
 
 ```
 Pasziansz.sln
-Pasziansz/
+Pasziansz/                            – a WPF-es felület (net8.0-windows)
 ├─ App.xaml / App.xaml.cs          – alkalmazás, témabetöltés, hibakezelés
 ├─ MainWindow.xaml(.cs)            – egyedi ablak, játéktér, oldalsáv, állapotsáv
 ├─ Assets/
@@ -84,16 +84,38 @@ Pasziansz/
 │  ├─ CardView.xaml(.cs)           – egy kártya megjelenítése
 │  ├─ CardBackPreview.xaml(.cs)    – hátlap-előnézet a beállításokhoz
 │  └─ ToastHost.xaml(.cs)          – lebegő üzenetek
+├─ Services/                       – Settings, ThemeManager, SoundPlayer
+└─ Dialogs/                        – WinDialog, RulesDialog
+
+Pasziansz.Core/                       – a szabálymotor, felület nélkül (net8.0)
 ├─ Game/
 │  ├─ KlondikeGame.cs              – a játék teljes logikája (osztás, lépések, undo, tipp)
 │  ├─ Rules.cs                     – a Klondike szabályai
 │  ├─ Scoring.cs                   – pontozás
 │  ├─ Statistics.cs                – statisztika mentése/betöltése
 │  └─ PileLocation.cs              – a rakások modellje a nézethez
-├─ Models/                         – Card, Deck, Pile, MoveRecord
-├─ Services/                       – Settings, ThemeManager, SoundPlayer
-└─ Dialogs/                        – WinDialog, RulesDialog
+└─ Models/                         – Card, Deck, Pile, MoveRecord
+
+Pasziansz.Tests/                      – xUnit tesztek a szabálymotorra (net8.0)
+├─ TestSupport.cs                  – determinisztikus paklik, tábla-felépítés
+├─ DealTests, RulesTests           – osztás, szabályok
+├─ MoveTests, UndoTests, DrawTests – lépések, visszavonás, húzás
+├─ HintAndAutoPlayTests            – tipp, automatikus felpakolás
+├─ WinAndScoringTests              – győzelem, pontozás
+└─ PileTests, CardAndDeckTests, StatisticsTests
 ```
+
+## Tesztek
+
+A szabálymotor (`Pasziansz.Core`) szándékosan nem függ a WPF-től, ezért a tesztek
+Windows nélkül is futnak:
+
+```
+dotnet test
+```
+
+Az `UndoTests` egy teljes, végigjátszott partit is visszatekercsel, és minden lépésnél
+ellenőrzi, hogy a tábla, a pontszám és a lépésszám pontosan az eredeti állapotra állt vissza.
 
 ## Megjegyzés a kártyákról
 

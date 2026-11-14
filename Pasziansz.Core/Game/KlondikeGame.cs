@@ -35,11 +35,22 @@ namespace Pasziansz.Game
     /// </summary>
     public sealed class KlondikeGame
     {
-        private const int MaxUndoDepth = 500;
+        /// <summary>A visszavonható lépések felső korlátja (a legrégebbiek kiesnek).</summary>
+        public const int MaxUndoDepth = 500;
 
         private readonly List<MoveRecord> _undoStack = new();
         private readonly Random _random;
         private List<Card>? _lastDeal;
+
+        /// <summary>A lépés felvétele a visszavonás-verembe, a mérethatár betartásával.</summary>
+        private void PushUndo(MoveRecord record)
+        {
+            _undoStack.Add(record);
+            if (_undoStack.Count > MaxUndoDepth)
+            {
+                _undoStack.RemoveAt(0);
+            }
+        }
 
         public KlondikeGame(Random? random = null)
         {
@@ -179,7 +190,7 @@ namespace Pasziansz.Game
                 MovesBefore = MoveCount - 1
             };
 
-            _undoStack.Add(record);
+            PushUndo(record);
             MovePerformed?.Invoke(this, record);
             GameChanged?.Invoke(this, EventArgs.Empty);
             return MoveResult.Ok(record, LastAction);
@@ -222,7 +233,7 @@ namespace Pasziansz.Game
                 MovesBefore = movesBefore
             };
 
-            _undoStack.Add(record);
+            PushUndo(record);
             MovePerformed?.Invoke(this, record);
             GameChanged?.Invoke(this, EventArgs.Empty);
             return MoveResult.Ok(record, LastAction);
@@ -256,7 +267,7 @@ namespace Pasziansz.Game
                 MovesBefore = movesBefore
             };
 
-            _undoStack.Add(record);
+            PushUndo(record);
             MoveCount++;
             LastAction = $"{card?.ShortCode} felfordítva";
             MovePerformed?.Invoke(this, record);
@@ -359,11 +370,7 @@ namespace Pasziansz.Game
             LastAction = $"{parts} → {to}";
 
             var record = MoveRecord.Transfer(from, to, moving, flipped, scoreBefore, movesBefore);
-            _undoStack.Add(record);
-            if (_undoStack.Count > MaxUndoDepth)
-            {
-                _undoStack.RemoveAt(0);
-            }
+            PushUndo(record);
 
             MovePerformed?.Invoke(this, record);
             GameChanged?.Invoke(this, EventArgs.Empty);

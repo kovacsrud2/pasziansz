@@ -7,7 +7,7 @@ namespace Pasziansz.Game
     /// A Klondike pasziánsz klasszikus pontozása:
     ///  +10 a gyűjtőhelyre tett lapért,  +5 a talonból a játéktérre tett lapért,
     ///  +15 az oszlop aljának felfordításáért,  -15 ha a gyűjtőhelyről visszaveszünk,
-    ///  -20 a talon újrakeveréséért,  -100 ha a húzópakliból vett lapot teszünk vissza.
+    ///  -20 a talon újrakeveréséért. A pontszám soha nem csökken nulla alá.
     /// </summary>
     public static class Scoring
     {
@@ -63,6 +63,6 @@ namespace Pasziansz.Game
             "+15 pont az oszlop felfordításáért\n" +
             "−15 pont ha a gyűjtőhelyről visszaveszel egy lapot\n" +
             "−20 pont a talon újrakeveréséért\n" +
-            "−100 pont ha a húzópakliból vett lapot rakod vissza";
+            "A pontszám soha nem megy nulla alá.";
     }
 }

@@ -56,7 +56,7 @@
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6"
                                    Text="−20 pont a talon újrakeveréséért" />
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,14"
-                                   Text="−100 pont, ha a talonból vett lapot visszateszed a pakliba" />
+                                   Text="A pontszám soha nem csökken nulla alá." />
 
                         <TextBlock Text="Billentyűk" Style="{StaticResource Text.SectionHeader}" />
                         <TextBlock Style="{StaticResource Text.Body}" Margin="0,0,0,6" Text="Szóköz – húzás, illetve a kiválasztott lap felpakolása" />

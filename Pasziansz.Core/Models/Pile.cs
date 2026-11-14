@@ -63,6 +63,8 @@ namespace Pasziansz.Models
                     _faceDownCount = clamped;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(TopCard));
+                    OnPropertyChanged(nameof(FaceUpCount));
+                    OnPropertyChanged(nameof(FirstFaceUpIndex));
                 }
             }
         }
@@ -130,8 +132,12 @@ namespace Pasziansz.Models
         {
             _faceDownCount = 0;
             _cards.Clear();
+            OnPropertyChanged(nameof(FaceDownCount));
             OnPropertyChanged(nameof(Count));
             OnPropertyChanged(nameof(TopCard));
+            OnPropertyChanged(nameof(BottomCard));
+            OnPropertyChanged(nameof(FaceUpCount));
+            OnPropertyChanged(nameof(FirstFaceUpIndex));
         }
 
         /// <summary>A rakásban lévő lapok listája (alulról felfelé).</summary>
