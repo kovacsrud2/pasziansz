@@ -36,7 +36,11 @@ public class PileTests
         Assert.Equal(3, pile.Count);
         Assert.Equal(Cards.C("5H"), pile.BottomCard);
         Assert.Equal(Cards.C("3D"), pile.TopCard);
-        Assert.Equal(0, pile.IndexOf(Cards.C("4S")));
+
+        // A lapok alulról felfelé tárolódnak: 5H = 0, 4S = 1, 3D = 2.
+        Assert.Equal(0, pile.IndexOf(Cards.C("5H")));
+        Assert.Equal(1, pile.IndexOf(Cards.C("4S")));
+        Assert.Equal(2, pile.IndexOf(Cards.C("3D")));
     }
 
     [Fact]
