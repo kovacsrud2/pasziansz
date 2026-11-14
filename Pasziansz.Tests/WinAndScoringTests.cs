@@ -221,7 +221,7 @@ public class WinTests
         }
 
         // Ebben az osztásban a húzási sorrend színenként ász..király, így a parti
-        // újrakeverés nélkül is kirakható (ezt a lépésszám alatti ellenőrzés mutatja).
+        // újrakeverés nélkül is kirakható (a pakli és a talon is kiürül).
         Assert.True(game.IsWon, "A felépített osztást ki kell rakni.");
         Assert.Equal(52, game.CardsOnFoundation);
         Assert.Equal(1, won);
