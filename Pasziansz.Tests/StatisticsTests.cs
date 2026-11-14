@@ -1,3 +1,5 @@
+using System.IO;
+using Pasziansz;
 using Pasziansz.Game;
 using Xunit;
 
@@ -118,6 +120,16 @@ public class StatisticsTests
 
         Assert.Equal(42, stats.BestScore);
         Assert.Equal(7, clone.BestScore);
+    }
+
+    [Fact]
+    public void StatisticsFile_IsInsideTheDataFolder()
+    {
+        // A statisztika a felhasználói profilba kerül, a beállításokkal azonos mappába.
+        // (A Core nem hivatkozhat a WPF-projekt szolgáltatásaira – ez a teszt ezt is védi.)
+        Assert.Equal("ZoldPasziansz", AppPaths.FolderName);
+        Assert.Equal("statistics.json", System.IO.Path.GetFileName(StatisticsStore.FilePath));
+        Assert.Equal(AppPaths.DataFolder, System.IO.Path.GetDirectoryName(StatisticsStore.FilePath));
     }
 
     [Fact]

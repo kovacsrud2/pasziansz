@@ -59,8 +59,7 @@ namespace Pasziansz.Services
             Converters = { new JsonStringEnumConverter() }
         };
 
-        public static string SettingsFolder =>
-            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ZoldPasziansz");
+        public static string SettingsFolder => AppPaths.DataFolder;
 
         public static string SettingsPath => Path.Combine(SettingsFolder, "settings.json");
 
