@@ -77,12 +77,22 @@ namespace Pasziansz.Game
                 foundation.Add(ToPileState(PileRef.Foundation(i), Foundation[i]));
             }
 
+            // A folytatott parti órája a mentéskori eltelt időt viszi tovább, nem a
+            // mentés és a folytatás között eltelt (játék nélküli) időt. Ezért a
+            // kezdőidőpontot a mentés pillanatához igazítjuk.
+            DateTime startedAt = StartedAt == default ? DateTime.Now : StartedAt;
+            if (SavedAt != default && SavedAt > startedAt)
+            {
+                TimeSpan played = SavedAt - startedAt;
+                startedAt = DateTime.Now - played;
+            }
+
             game.LoadState(
                 DrawCount,
                 Score,
                 Moves,
                 Recycles,
-                StartedAt == default ? DateTime.Now : StartedAt,
+                startedAt,
                 tableau,
                 foundation,
                 ToPileState(PileRef.Stock(), Stock),

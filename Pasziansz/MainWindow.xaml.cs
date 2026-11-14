@@ -99,7 +99,12 @@ namespace Pasziansz
             _settingsLoaded = true;
             SyncSettingsUi();
 
-            if (!TryResumeSavedGame())
+            if (TryResumeSavedGame())
+            {
+                // A betöltött parti módja az érvényes; a beállítást ehhez igazítjuk.
+                _settings.DrawCount = _game.DrawCount;
+            }
+            else
             {
                 StartNewGame(_settings.DrawCount);
             }
@@ -152,6 +157,13 @@ namespace Pasziansz
         /// <summary>A jelenlegi parti mentése a háttérben (hiba esetén csendben).</summary>
         private void SaveCurrentGame()
         {
+            if (_loadingGame)
+            {
+                // Betöltés közben az állapot még nem a betöltött parti: a fájlhoz
+                // nem nyúlunk, különben felülírnánk a folytatni kívánt mentést.
+                return;
+            }
+
             if (_winShown)
             {
                 // A megnyert partit nem érdemes folytatni.
@@ -171,7 +183,18 @@ namespace Pasziansz
                 return false;
             }
 
-            LoadSavedGame(saved);
+            try
+            {
+                LoadSavedGame(saved);
+            }
+            catch (Exception ex)
+            {
+                // A betöltés hibája nem némíthatja el a mentést: hagyjuk meg a fájlt,
+                // és jelezzük a hibát, hogy ki lehessen deríteni az okát.
+                ShowToast($"A mentett parti betöltése nem sikerült: {ex.Message}", "!", 6.0);
+                return false;
+            }
+
             ShowToast($"Folytatod a korábban abbahagyott partit: {_game.Score} pont, " +
                       $"{_game.MoveCount} lépés.", "↺", 3.2);
             return true;
@@ -215,10 +238,12 @@ namespace Pasziansz
         /// <summary>A „Folytatás” gomb csak akkor aktív, ha van mentett parti.</summary>
         private void UpdateResumeButton()
         {
-            if (ResumeButton != null)
+            if (ResumeButton == null || _loadingGame)
             {
-                ResumeButton.IsEnabled = GameSaveStore.HasSave();
+                return;
             }
+
+            ResumeButton.IsEnabled = GameSaveStore.HasSave();
         }
 
         private void ResumeButton_Click(object sender, RoutedEventArgs e)
@@ -237,7 +262,18 @@ namespace Pasziansz
                 return;
             }
 
-            LoadSavedGame(saved);
+            try
+            {
+                LoadSavedGame(saved);
+            }
+            catch (Exception ex)
+            {
+                // A mentésfájlhoz nem nyúlunk: így a hiba kijavítása után a parti
+                // még mindig folytatható.
+                ShowToast($"A mentett parti betöltése nem sikerült: {ex.Message}", "!", 6.0);
+                return;
+            }
+
             SoundPlayer.PlayCardDraw();
             ShowToast("Mentett parti betöltve.", "↺", 1.8);
             UpdateResumeButton();
@@ -470,16 +506,11 @@ namespace Pasziansz
 
         private void SyncSettingsUi()
         {
-            // A kapcsoló a tényleges játékmódot mutassa (a játék alapértéke 1,
-            // a mentett beállítás viszont 3 lapos húzás is lehet).
-            if (!_game.CanRestart)
-            {
-                // Még nincs osztás (mentett parti betöltése előtt): csak előkészítjük
-                // a módot. Betöltés után a betöltött parti módja az érvényes.
-                _game.NewGame(_settings.DrawCount);
-            }
-
-            UpdateDrawModeToggles(_game.DrawCount);
+            // FONTOS: itt nem indítunk osztást. A NewGame GameChanged eseményt vált
+            // ki, ami elmentené az állást – még a mentett parti betöltése ELŐTT,
+            // ezzel felülírva a fájlt. A húzási módot az indítás állítja be:
+            // betöltés esetén a mentett parti módját, egyébként a beállításét.
+            UpdateDrawModeToggles(_settings.DrawCount);
             UpdateBackStyleUi(_settings.CardBackStyle);
             HintStatusText.Text = string.Empty;
         }

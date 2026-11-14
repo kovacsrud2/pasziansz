@@ -94,15 +94,142 @@ public class GameSaveTests
     }
 
     [Fact]
-    public void ApplyTo_RestoresGameStartedAt()
+    public void SaveThenLoad_RoundTripsTheWholeBoard()
     {
+        // A mentés és a betöltés együtt: a teljes tábla (oszlopok, gyűjtőhelyek,
+        // pakli, talon) és a számlálók is változatlanul térnek vissza.
+        var game = PlayedGame(11);
+        string path = TempSavePath();
+
+        try
+        {
+            Assert.True(GameSaveStore.Save(game, path));
+            var saved = GameSaveStore.Load(path);
+            Assert.NotNull(saved);
+
+            var restored = new KlondikeGame(new Random(5));
+            saved!.ApplyTo(restored);
+
+            Assert.Equal(Snap.Of(game), Snap.Of(restored));
+            Assert.Equal(game.Score, restored.Score);
+            Assert.Equal(game.MoveCount, restored.MoveCount);
+            Assert.Equal(game.RecycleCount, restored.RecycleCount);
+            Assert.Equal(game.DrawCount, restored.DrawCount);
+
+            // A táblán továbbra is pontosan 52 különböző lap van.
+            Assert.Equal(Deck.FullDeckSize, restored.Board.AllCards().Distinct().Count());
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Load_AfterSave_IsValidAndResumable()
+    {
+        // A „Folytatás” gomb feltétele: a mentés betölthető és érvényes.
+        var game = PlayedGame(3);
+        string path = TempSavePath();
+
+        try
+        {
+            Assert.True(GameSaveStore.Save(game, path));
+            Assert.True(GameSaveStore.HasSave(path));
+
+            var saved = GameSaveStore.Load(path);
+            Assert.NotNull(saved);
+            Assert.True(GameSaveStore.IsValid(saved!));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void LoadedGame_DoesNotLoseCards_AfterFurtherPlay()
+    {
+        // A betöltött partiban a játék folytatható: a lapok nem tűnnek el és nem
+        // duplázódnak, a húzás és a visszavonás is működik.
+        var game = PlayedGame(9);
+        var saved = GameSaveStore.Capture(game);
+
+        var restored = new KlondikeGame(new Random(2));
+        saved.ApplyTo(restored);
+
+        Assert.True(restored.DrawFromStock().Success);
+        Assert.Equal(Deck.FullDeckSize, restored.Board.AllCards().Distinct().Count());
+
+        Assert.True(restored.Undo().Success);
+        Assert.Equal(Deck.FullDeckSize, restored.Board.AllCards().Distinct().Count());
+    }
+
+    [Fact]
+    public void LoadedGame_CanBeSavedAgain()
+    {
+        // A folytatott parti tovább menthető (a mentés nem „egyszer használatos”).
+        var game = PlayedGame(4);
+        string path = TempSavePath();
+
+        try
+        {
+            GameSaveStore.Save(game, path);
+            var restored = new KlondikeGame(new Random(8));
+            GameSaveStore.Load(path)!.ApplyTo(restored);
+
+            Assert.True(GameSaveStore.Save(restored, path));
+
+            var again = GameSaveStore.Load(path);
+            Assert.NotNull(again);
+            Assert.Equal(Snap.Of(restored), Snap.Of(ApplyTo(again!)));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static KlondikeGame ApplyTo(SavedGame saved)
+    {
+        var game = new KlondikeGame(new Random(3));
+        saved.ApplyTo(game);
+        return game;
+    }
+
+    [Fact]
+    public void ApplyTo_KeepsThePlayedTime()
+    {
+        // A folytatott parti órája a játékidőt viszi tovább, nem a mentés és a
+        // betöltés között eltelt (játék nélküli) időt.
         var game = PlayedGame(7);
         var saved = GameSaveStore.Capture(game);
+
+        // A mentés egy órával ezelőtt készült, a parti két órája tart.
+        saved.SavedAt = DateTime.Now.AddHours(-1);
+        saved.StartedAt = DateTime.Now.AddHours(-2);
 
         var restored = new KlondikeGame(new Random(1));
         saved.ApplyTo(restored);
 
-        Assert.Equal(game.GameStartedAt, restored.GameStartedAt);
+        // Az eltelt idő nagyjából 1 óra (a játékban töltött idő), nem 2 óra.
+        Assert.InRange(restored.Elapsed.TotalMinutes, 59, 61);
+    }
+
+    [Fact]
+    public void ApplyTo_WithoutSavedAt_UsesStartedAt()
+    {
+        // Régebbi mentés (nincs SavedAt): a kezdőidőpontot változatlanul vesszük át.
+        var game = PlayedGame(7);
+        var saved = GameSaveStore.Capture(game);
+        var started = DateTime.Now.AddMinutes(-30);
+        saved.StartedAt = started;
+        saved.SavedAt = default;
+
+        var restored = new KlondikeGame(new Random(1));
+        saved.ApplyTo(restored);
+
+        Assert.Equal(started, restored.GameStartedAt);
     }
 
     [Fact]
