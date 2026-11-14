@@ -27,8 +27,8 @@ public class HintAndAutoPlayTests
         Assert.Equal(PileRef.Waste(), hint!.From);
         Assert.Equal(PileRef.Foundation(2), hint.To);
         Assert.Equal(0, hint.SourceIndex);
-        Assert.Contains("A♠", hint.Description);
-        Assert.Contains("pikk", hint.Description);
+        Assert.Contains("A♥", hint.Description);   // AH = ász kőr
+        Assert.Contains("kőr", hint.Description);
     }
 
     [Fact]

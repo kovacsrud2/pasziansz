@@ -55,14 +55,27 @@ public class CardAndDeckTests
 
     [Theory]
     [InlineData(1, "A")]
-    [InlineData(10, "T")]
     [InlineData(11, "J")]
     [InlineData(12, "Q")]
     [InlineData(13, "K")]
     [InlineData(7, "7")]
+    [InlineData(2, "2")]
     public void Card_RankCodes(int rank, string expected)
     {
         Assert.Equal(expected, Card.RankToCode(rank));
+    }
+
+    [Fact]
+    public void Card_TenIsWrittenAsNumber()
+    {
+        // A felület a rövid kódot írja ki (pl. „10♥”), ezért a tízes számjegyekkel
+        // szerepel, nem „T” betűvel. A tesztek saját kódolvasója (Cards.C) viszont
+        // elfogadja a „T” jelölést is a paklik leírásához.
+        var ten = new Card(Suit.Hearts, 10);
+
+        Assert.Equal("10", Card.RankToCode(10));
+        Assert.Equal("10♥", ten.ShortCode);
+        Assert.Equal("10 kőr", ten.DisplayName);
     }
 
     [Theory]

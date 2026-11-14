@@ -8,7 +8,11 @@ namespace Pasziansz.Tests;
 /// <summary>
 /// Kártya-kódok olvasása és determinisztikus paklik összeállítása a tesztekhez.
 /// A kód két részből áll: érték + szín, pl. <c>AS</c> = ász pikk, <c>TH</c> = tízes kőr,
-/// <c>QD</c> = dáma káró, <c>7C</c> = hetes treff. (T = tízes.)
+/// <c>QD</c> = dáma káró, <c>7C</c> = hetes treff.
+/// <para>
+/// A tízesre itt a <c>T</c> jelölést használjuk (a paklik olvashatóbbak így), a játék
+/// viszont a felületen <c>10♥</c> formában írja ki – lásd <see cref="Card.RankToCode"/>.
+/// </para>
 /// </summary>
 internal static class Cards
 {
