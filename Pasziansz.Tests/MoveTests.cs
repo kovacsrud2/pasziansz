@@ -123,7 +123,7 @@ public class MoveTests
         var result = game.Move(PileRef.Tableau(0), 0, PileRef.Tableau(1));
 
         Assert.False(result.Success);
-        Assert.Equal("5H", Cards.CodeOf(game.Board.Tableau[0].Pile.TopCard!));
+        Assert.Equal("5H", DeckBuilder.CodeOf(game.Board.Tableau[0].Pile.TopCard!));
     }
 
     [Fact]

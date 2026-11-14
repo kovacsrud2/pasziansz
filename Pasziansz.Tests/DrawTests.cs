@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Pasziansz.Game;
 using Pasziansz.Models;
 using Xunit;
