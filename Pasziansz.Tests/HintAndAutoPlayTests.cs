@@ -113,19 +113,35 @@ public class HintAndAutoPlayTests
     }
 
     [Fact]
-    public void AutoPlay_PutsOnlyTheNextCardInSequence()
+    public void AutoPlay_DoesNotSkipACardInTheSequence()
     {
         var game = BoardSetup.EmptyGame();
         BoardSetup.SetFoundation(game, 2, "AH");
         BoardSetup.SetWaste(game, "3H"); // a kettes hiányzik
-        BoardSetup.SetTableau(game, 0, 0, "2H");
 
         int placed = game.AutoPlayToFoundation();
 
-        Assert.Equal(1, placed);
+        Assert.Equal(0, placed);
+        Assert.Single(game.Board.Foundation[2].Pile.Cards);
+        Assert.Equal(Cards.C("3H"), game.Board.Waste.Pile.TopCard);
+    }
+
+    [Fact]
+    public void AutoPlay_ContinuesInChainWhenTheNextCardAppears()
+    {
+        var game = BoardSetup.EmptyGame();
+        BoardSetup.SetFoundation(game, 2, "AH");
+        BoardSetup.SetTableau(game, 0, 0, "2H");
+        BoardSetup.SetWaste(game, "3H");
+
+        // A 2♥ felvitele után a talon 3♥-ja már sorra kerül, ezért két lap megy fel.
+        int placed = game.AutoPlayToFoundation();
+
+        Assert.Equal(2, placed);
         Assert.Equal(3, game.Board.Foundation[2].Pile.Count);
         Assert.Equal(Cards.C("3H"), game.Board.Foundation[2].Pile.TopCard);
         Assert.Empty(game.Board.Tableau[0].Pile.Cards);
+        Assert.Empty(game.Board.Waste.Pile.Cards);
     }
 
     [Fact]
