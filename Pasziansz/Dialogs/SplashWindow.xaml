@@ -10,7 +10,7 @@
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
         Topmost="True"
-        Icon="Assets/App.ico"
+        Icon="pack://application:,,,/Assets/App.ico"
         UseLayoutRounding="True"
         TextOptions.TextFormattingMode="Ideal"
         FontFamily="Segoe UI Variable Text, Segoe UI">
