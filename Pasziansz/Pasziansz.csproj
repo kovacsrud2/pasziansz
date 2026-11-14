@@ -34,6 +34,7 @@
     <Resource Include="Assets\Cards\*.png" />
     <Resource Include="Assets\Backs\*.png" />
     <Resource Include="Assets\Textures\*.png" />
+    <Resource Include="Assets\Splash\*.jpg" />
     <Resource Include="Assets\App.ico" />
     <None Remove="Assets\**" />
   </ItemGroup>

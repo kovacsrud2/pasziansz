@@ -1,0 +1,71 @@
+<Window x:Class="Pasziansz.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Zöld Pasziánsz"
+        Width="880" Height="660"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Icon="Assets/App.ico"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Ideal"
+        FontFamily="Segoe UI Variable Text, Segoe UI">
+
+    <!--
+        BETÖLTŐ KÉPERNYŐ
+        ================
+        Indításkor rövid ideig látszik: a program ikonképe (nemeskep_2.jpg) tölti
+        ki az ablakot, arányosan méretezve. A kép a binárisba van beépítve
+        (Assets\Splash), ezért külön fájl nem kell mellé.
+
+        A kép Border-háttérként (ImageBrush) jelenik meg, mert így a lekerekített
+        sarkok vágása is helyesen működik (a gyermek-elemeket a Border nem vágná).
+    -->
+    <Grid Margin="14">
+        <Border CornerRadius="16" BorderBrush="#553FAE7C" BorderThickness="1">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" ShadowDepth="6" Direction="270"
+                                  Color="Black" Opacity="0.65" />
+            </Border.Effect>
+
+            <Border.Background>
+                <ImageBrush ImageSource="pack://application:,,,/Assets/Splash/nemeskep_2.jpg"
+                            Stretch="UniformToFill"
+                            RenderOptions.BitmapScalingMode="HighQuality" />
+            </Border.Background>
+
+            <Grid>
+                <!-- Halvány alsó sáv a feliratoknak, hogy a kép is érvényesüljön. -->
+                <Border VerticalAlignment="Bottom" Height="96" CornerRadius="0,0,15,15">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#00000000" Offset="0" />
+                            <GradientStop Color="#B306281B" Offset="0.55" />
+                            <GradientStop Color="#E606281B" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
+
+                <StackPanel VerticalAlignment="Bottom" Margin="28,0,28,22">
+                    <TextBlock Text="ZÖLD PASZIÁNSZ"
+                               FontSize="26" FontWeight="Bold"
+                               Foreground="#FFF3EEDC"
+                               FontFamily="Georgia, Segoe UI">
+                        <TextBlock.Effect>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="2"
+                                              Direction="270" Color="Black" Opacity="0.75" />
+                        </TextBlock.Effect>
+                    </TextBlock>
+
+                    <TextBlock Text="Klondike – a klasszikus pasziánsz"
+                               Margin="0,4,0,0"
+                               FontSize="13" Foreground="#CCA8E0BE" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
