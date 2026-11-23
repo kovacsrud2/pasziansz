@@ -1,0 +1,3 @@
+# A PDF-ek generált melléktermékek, de a tananyag részeként verziózzuk őket.
+__pycache__/
+*.pyc

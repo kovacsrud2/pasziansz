@@ -129,3 +129,14 @@ A `cards/` mappában található eredeti képekből készültek a játék erőfo
 
 Ezek a képek `Resource` elemekként a `.csproj`-ban bekerülnek a binárisba, a játék pedig
 `pack://application:,,,/Assets/...` URI-kkel, `Resources/Cards.xaml`-ből éri el őket.
+
+## Oktatási anyag
+
+A `docs/adatbazis-tervezes/` mappában egy komplett adatbázis-tervezési feladatcsomag
+található (kerékpár-kölcsönző szolgáltatás): feladatlap, megoldókulcs, E-R diagram,
+relációs adatbázis-diagram és PostgreSQL-séma.
+
+- [`docs/adatbazis-tervezes/feladatlap.pdf`](docs/adatbazis-tervezes/feladatlap.pdf) — kiadható feladatsor
+- [`docs/adatbazis-tervezes/megoldokulcs.pdf`](docs/adatbazis-tervezes/megoldokulcs.pdf) — tanári megoldókulcs
+- [`docs/adatbazis-tervezes/schema.sql`](docs/adatbazis-tervezes/schema.sql) — a teljes SQL-séma
+
